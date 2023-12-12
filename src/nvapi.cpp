@@ -109,6 +109,57 @@ namespace nvd {
             return Ok();
         }
 
+        NvAPI_Status __cdecl NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pDeviceId, NvU32* pSubSystemId, NvU32* pRevisionId, NvU32* pExtDeviceId) {
+            // Get the GPU adapter LUID using DXGI
+            IDXGIFactory1* pFactory = nullptr;
+            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
+                log("Failed to create DXGI Factory");
+                return Error();
+            }
+
+            IDXGIAdapter1* pAdapter = nullptr;
+            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
+                log("Failed to enumerate adapters");
+                pFactory->Release();
+                return Error();
+            }
+
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
+                log("Failed to get adapter description");
+                pAdapter->Release();
+                pFactory->Release();
+                return Error();
+            }
+
+            *pDeviceId = (adapterDesc.DeviceId << 16) | adapterDesc.VendorId;
+            *pSubSystemId = adapterDesc.SubSysId;
+            *pRevisionId = adapterDesc.Revision;
+            *pExtDeviceId = adapterDesc.DeviceId;
+
+            pAdapter->Release();
+            pFactory->Release();
+
+            return Ok();
+        }
+        NvAPI_Status __cdecl NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName) {
+            tonvss(szName, fullGPUName);
+            return Ok();
+        }
+        NvAPI_Status __cdecl NvAPI_GPU_GetGpuCoreCount(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pCount) {
+            return Error(NVAPI_NO_IMPLEMENTATION);
+        }
+        NvAPI_Status __cdecl NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGPU, NV_GPU_CLOCK_FREQUENCIES* pClkFreqs) {
+            return Error(NVAPI_NOT_SUPPORTED);
+        }
+        NvAPI_Status __cdecl NvAPI_DISP_GetDisplayIdByDisplayName(const char* displayName, NvU32* displayId) {
+            *displayId = 0;
+            return Ok();
+        }
+        NvAPI_Status __cdecl NvAPI_Mosaic_GetDisplayViewportsByResolution(NvU32 displayId, NvU32 srcWidth, NvU32 srcHeight, NV_RECT viewports[NV_MOSAIC_MAX_DISPLAYS], NvU8* bezelCorrected) {
+            return Error(NVAPI_MOSAIC_NOT_ACTIVE);
+        }
+
         NvAPI_Status __cdecl NvAPI_SYS_GetDisplayDriverInfo(NV_DISPLAY_DRIVER_INFO* driverInfo) {
             spoofDriverInfo(driverInfo);
             return Ok();
