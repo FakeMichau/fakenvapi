@@ -171,6 +171,47 @@ namespace nvd {
             return Ok();
         }
 
+        NvAPI_Status __cdecl NvAPI_D3D_GetObjectHandleForResource(IUnknown* invalid, IUnknown* pResource, NVDX_ObjectHandle* pHandle) {
+            *pHandle = (NVDX_ObjectHandle)pResource;
+            return Ok();
+        }
+
+        NvAPI_Status __cdecl NvAPI_D3D_SetResourceHint() {
+            return Error(NVAPI_NO_IMPLEMENTATION);
+        }
+
+        NvAPI_Status __cdecl NvAPI_D3D11_IsNvShaderExtnOpCodeSupported(IUnknown* invalid, NvU32 opCode, bool* pSupported) {
+            *pSupported = true;
+            return Ok();
+        }
+
+        NvAPI_Status __cdecl NvAPI_D3D11_BeginUAVOverlap(IUnknown* pDeviceOrContext) {
+            static bool logged = false;
+            if (!logged) {
+                logged = true;
+                return Ok();
+            }
+            else return NVAPI_OK; //return without logging
+        }
+
+        NvAPI_Status __cdecl NvAPI_D3D11_EndUAVOverlap(IUnknown* pDeviceOrContext) {
+            static bool logged = false;
+            if (!logged) {
+                logged = true;
+                return Ok();
+            }
+            else return NVAPI_OK; //return without logging
+        }
+
+        NvAPI_Status __cdecl NvAPI_D3D11_SetDepthBoundsTest(IUnknown* pDeviceOrContext) {
+            static bool logged = false;
+            if (!logged) {
+                logged = true;
+                return Ok();
+            }
+            else return NVAPI_OK; //return without logging
+        }
+
         NvAPI_Status __cdecl NvAPI_D3D12_GetRaytracingCaps(IUnknown* invalid, NVAPI_D3D12_RAYTRACING_CAPS_TYPE type, void* pData, size_t dataSize) {
             if (pData == nullptr)
                 return Error(NVAPI_INVALID_POINTER);

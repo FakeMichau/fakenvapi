@@ -3,6 +3,7 @@
 #include <format>
 
 #include <dxgi.h>
+#include <d3d11.h>
 #include "../include/nvapi_interface.h"
 #include "../include/d3d12.h"
 #include "../include/nvapi.h"
@@ -12,7 +13,7 @@
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
-            return Ok();
+            return Error(NVAPI_NO_IMPLEMENTATION);
         }
 
         static std::unordered_map<NvU32, void*> registry;
@@ -51,6 +52,12 @@ namespace nvd {
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Mosaic_GetDisplayViewportsByResolution)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SYS_GetDisplayDriverInfo)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SYS_GetDriverAndBranchVersion)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetResourceHint)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_GetObjectHandleForResource)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_BeginUAVOverlap)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_EndUAVOverlap)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_SetDepthBoundsTest)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_GetRaytracingCaps)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread)
