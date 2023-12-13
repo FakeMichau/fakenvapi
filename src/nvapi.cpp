@@ -1,29 +1,38 @@
-#include <algorithm>
-#include <unordered_map>
-#include <format>
-
-#include <dxgi.h>
-#include "../include/d3d12.h"
-#include <vector>
-
-#include "util.h"
-#include "spoofInfo.h"
-#include "log.h"
-
-static auto drs = 1U;
-static auto drsSession = reinterpret_cast<NvDRSSessionHandle>(&drs);
-static auto drsProfile = reinterpret_cast<NvDRSProfileHandle>(&drs);
-
-class Adapter {
-public:
-    LUID luid; // unused
-};
-
-Adapter* dummy{};
+#include "nvapi.h"
 
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl NvAPI_Initialize() {
+            IDXGIFactory1* pFactory = nullptr;
+            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
+                log("Failed to create DXGI Factory");
+                return Error();
+            }
+
+            IDXGIAdapter1* pAdapter = nullptr;
+            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
+                log("Failed to enumerate adapters");
+                pFactory->Release();
+                return Error();
+            }
+
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
+                log("Failed to get adapter description");
+                pAdapter->Release();
+                pFactory->Release();
+                return Error();
+            }
+
+            luid = adapterDesc.AdapterLuid;
+            deviceId = adapterDesc.DeviceId;
+            vendorId = adapterDesc.VendorId;
+            subSysId = adapterDesc.SubSysId;
+            revisionId = adapterDesc.Revision;
+
+            pAdapter->Release();
+            pFactory->Release();
+
             return Ok();
         }
 
@@ -76,33 +85,6 @@ namespace nvd {
         }
 
         NvAPI_Status __cdecl NvAPI_GPU_GetLogicalGpuInfo(NvLogicalGpuHandle logicalHandle, NV_LOGICAL_GPU_DATA* logicalGpuData) {
-            // Get the GPU adapter LUID using DXGI
-            IDXGIFactory1* pFactory = nullptr;
-            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
-                log("Failed to create DXGI Factory");
-                return Error();
-            }
-
-            IDXGIAdapter1* pAdapter = nullptr;
-            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
-                log("Failed to enumerate adapters");
-                pFactory->Release();
-                return Error();
-            }
-
-            DXGI_ADAPTER_DESC1 adapterDesc;
-            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
-                log("Failed to get adapter description");
-                pAdapter->Release();
-                pFactory->Release();
-                return Error();
-            }
-
-            auto luid = adapterDesc.AdapterLuid;
-
-            pAdapter->Release();
-            pFactory->Release();
-
             memcpy(logicalGpuData->pOSAdapterId, &luid, sizeof(luid));
             logicalGpuData->physicalGpuHandles[0] = reinterpret_cast<NvPhysicalGpuHandle>(dummy);
             logicalGpuData->physicalGpuCount = 1;
@@ -110,36 +92,10 @@ namespace nvd {
         }
 
         NvAPI_Status __cdecl NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pDeviceId, NvU32* pSubSystemId, NvU32* pRevisionId, NvU32* pExtDeviceId) {
-            // Get the GPU adapter LUID using DXGI
-            IDXGIFactory1* pFactory = nullptr;
-            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
-                log("Failed to create DXGI Factory");
-                return Error();
-            }
-
-            IDXGIAdapter1* pAdapter = nullptr;
-            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
-                log("Failed to enumerate adapters");
-                pFactory->Release();
-                return Error();
-            }
-
-            DXGI_ADAPTER_DESC1 adapterDesc;
-            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
-                log("Failed to get adapter description");
-                pAdapter->Release();
-                pFactory->Release();
-                return Error();
-            }
-
-            *pDeviceId = (adapterDesc.DeviceId << 16) | adapterDesc.VendorId;
-            *pSubSystemId = adapterDesc.SubSysId;
-            *pRevisionId = adapterDesc.Revision;
-            *pExtDeviceId = adapterDesc.DeviceId;
-
-            pAdapter->Release();
-            pFactory->Release();
-
+            *pDeviceId = (deviceId << 16) | vendorId;
+            *pSubSystemId = subSysId;
+            *pRevisionId = revisionId;
+            *pExtDeviceId = deviceId;
             return Ok();
         }
         NvAPI_Status __cdecl NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName) {
