@@ -11,12 +11,14 @@
 #include "log.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    if (fdwReason == DLL_PROCESS_ATTACH) {
+    switch (fdwReason) {
+    case DLL_PROCESS_ATTACH:
         prepareLogging("nvapi-dummy.log");
         log("--------------");
-    }
-    else if (fdwReason == DLL_PROCESS_DETACH) {
+        break;
+    case DLL_PROCESS_DETACH:
         closeLogging();
+        break;
     }
     return TRUE;
 }
