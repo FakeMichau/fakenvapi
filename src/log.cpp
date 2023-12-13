@@ -14,7 +14,7 @@ NvAPI_Status Error(const std::source_location& location) {
 }
 
 NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
-    logFileStream << location.function_name() << ": Error" << std::endl;
+    logFileStream << location.function_name() << ": " << status << std::endl;
     return status;
 }
 
