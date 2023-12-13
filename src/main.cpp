@@ -10,6 +10,17 @@
 
 #include "log.h"
 
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+    if (fdwReason == DLL_PROCESS_ATTACH) {
+        prepareLogging("nvapi-dummy.log");
+        log("--------------");
+    }
+    else if (fdwReason == DLL_PROCESS_DETACH) {
+        closeLogging();
+    }
+    return TRUE;
+}
+
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
