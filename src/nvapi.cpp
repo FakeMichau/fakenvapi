@@ -74,12 +74,12 @@ namespace nvd {
         }
 
         NvAPI_Status __cdecl NvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle handle, NV_GPU_ARCH_INFO* archInfo) {
-            archInfo->architecture = NV_GPU_ARCHITECTURE_AD100;
-            archInfo->architecture_id = NV_GPU_ARCHITECTURE_AD100;
-            archInfo->implementation = NV_GPU_ARCH_IMPLEMENTATION_AD102;
-            archInfo->implementation_id = NV_GPU_ARCH_IMPLEMENTATION_AD102;
-            archInfo->revision = NV_GPU_CHIP_REV_UNKNOWN;
-            archInfo->revision_id = NV_GPU_CHIP_REV_UNKNOWN;
+            archInfo->architecture = spoof::arch;
+            archInfo->architecture_id = spoof::arch;
+            archInfo->implementation = spoof::implementation;
+            archInfo->implementation_id = spoof::implementation;
+            archInfo->revision = spoof::revision;
+            archInfo->revision_id = spoof::revision;
 
             return Ok();
         }
@@ -99,7 +99,7 @@ namespace nvd {
             return Ok();
         }
         NvAPI_Status __cdecl NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName) {
-            tonvss(szName, fullGPUName);
+            tonvss(szName, spoof::fullGPUName);
             return Ok();
         }
         NvAPI_Status __cdecl NvAPI_GPU_GetGpuCoreCount(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pCount) {
@@ -117,13 +117,13 @@ namespace nvd {
         }
 
         NvAPI_Status __cdecl NvAPI_SYS_GetDisplayDriverInfo(NV_DISPLAY_DRIVER_INFO* driverInfo) {
-            spoofDriverInfo(driverInfo);
+            spoof::driverInfo(driverInfo);
             return Ok();
         }
 
         NvAPI_Status __cdecl NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI_ShortString szBuildBranchString) {
-            *pDriverVersion = driverVersion;
-            tonvss(szBuildBranchString, buildBranch);
+            *pDriverVersion = spoof::driverVersion;
+            tonvss(szBuildBranchString, spoof::buildBranch);
             return Ok();
         }
 
