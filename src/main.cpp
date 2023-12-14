@@ -5,7 +5,11 @@
 #include <dxgi.h>
 #include <d3d11.h>
 #include "../include/nvapi_interface.h"
+#if defined __MINGW64__ || defined __MINGW32__
 #include "../include/d3d12.h"
+#else
+#include <d3d12.h>
+#endif
 #include "../include/nvapi.h"
 #include "nvapi.h"
 
@@ -33,7 +37,7 @@ namespace nvd {
 
         static std::unordered_map<NvU32, void*> registry;
 
-        void* nvapi_QueryInterface(NvU32 id) {
+        __declspec(dllexport) void* __cdecl nvapi_QueryInterface(NvU32 id) {
             auto entry = registry.find(id);
             if (entry != registry.end())
                 return entry->second;

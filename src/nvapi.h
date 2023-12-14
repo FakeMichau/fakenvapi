@@ -4,7 +4,11 @@
 #include <format>
 
 #include <dxgi.h>
+#if defined __MINGW64__ || defined __MINGW32__
 #include "../include/d3d12.h"
+#else
+#include <d3d12.h>
+#endif
 #include <vector>
 
 #include "util.h"
