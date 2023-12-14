@@ -1,3 +1,4 @@
+#pragma once
 #include "../include/nvapi.h"
 #include <string>
 #include <string.h>

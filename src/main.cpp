@@ -7,6 +7,7 @@
 #include "../include/nvapi_interface.h"
 #include "../include/d3d12.h"
 #include "../include/nvapi.h"
+#include "nvapi.h"
 
 #include "log.h"
 
@@ -26,7 +27,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
-            return Error(NVAPI_NO_IMPLEMENTATION);
+            return Ok();
+            // return Error(NVAPI_NO_IMPLEMENTATION);
         }
 
         static std::unordered_map<NvU32, void*> registry;

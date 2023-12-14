@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <string>
 #include <source_location>
