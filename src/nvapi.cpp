@@ -46,6 +46,12 @@ namespace nvd {
         return Ok();
     }
 
+    NvAPI_Status __cdecl NvAPI_EnumLogicalGPUs(NvLogicalGpuHandle handles[NVAPI_MAX_LOGICAL_GPUS], NvU32* count) {
+        handles[0] = nullptr;
+        *count = 1;
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_EnumNvidiaDisplayHandle(NvU32 displayId, NvDisplayHandle* handle) {
         if (displayId == 0) {
             return Ok();
@@ -55,6 +61,17 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_GetLogicalGPUFromPhysicalGPU(NvPhysicalGpuHandle physicalHandle, NvLogicalGpuHandle* logicalHandle) {
         *logicalHandle = nullptr;
+        return Ok();
+    }
+
+
+    NvAPI_Status __cdecl NvAPI_GetGPUIDfromPhysicalGPU(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pGpuId) {
+        *pGpuId = 42;
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_GetPhysicalGPUFromGPUID(NvU32 gpuId, NvPhysicalGpuHandle* pPhysicalGPU) {
+        *pPhysicalGPU = nullptr;
         return Ok();
     }
 
@@ -97,20 +114,30 @@ namespace nvd {
         *pExtDeviceId = deviceId;
         return Ok();
     }
+
     NvAPI_Status __cdecl NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName) {
         tonvss(szName, spoof::fullGPUName);
         return Ok();
     }
+
     NvAPI_Status __cdecl NvAPI_GPU_GetGpuCoreCount(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pCount) {
         return Error(NVAPI_NO_IMPLEMENTATION);
     }
+
     NvAPI_Status __cdecl NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGPU, NV_GPU_CLOCK_FREQUENCIES* pClkFreqs) {
         return Error(NVAPI_NOT_SUPPORTED);
     }
+
     NvAPI_Status __cdecl NvAPI_DISP_GetDisplayIdByDisplayName(const char* displayName, NvU32* displayId) {
         *displayId = 0;
         return Ok();
     }
+
+    NvAPI_Status __cdecl NvAPI_DISP_GetGDIPrimaryDisplayId(NvU32* displayId) {
+        *displayId = 0;
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_Mosaic_GetDisplayViewportsByResolution(NvU32 displayId, NvU32 srcWidth, NvU32 srcHeight, NV_RECT viewports[NV_MOSAIC_MAX_DISPLAYS], NvU8* bezelCorrected) {
         return Error(NVAPI_MOSAIC_NOT_ACTIVE);
     }

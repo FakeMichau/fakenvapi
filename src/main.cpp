@@ -31,8 +31,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
-            return Ok();
-            // return Error(NVAPI_NO_IMPLEMENTATION);
+            // return Ok();
+            return Error(NVAPI_NO_IMPLEMENTATION);
         }
 
         static std::unordered_map<NvU32, void*> registry;
@@ -60,6 +60,10 @@ namespace nvd {
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_EnumNvidiaDisplayHandle)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetLogicalGPUFromPhysicalGPU)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_EnumPhysicalGPUs)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_EnumLogicalGPUs)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetGPUIDfromPhysicalGPU)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUFromGPUID)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetLogicalGpuInfo)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetConnectedDisplayIds)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_CudaEnumComputeCapableGpus)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetArchInfo)
@@ -68,6 +72,7 @@ namespace nvd {
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetGpuCoreCount)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetAllClockFrequencies)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DISP_GetDisplayIdByDisplayName)
+                INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DISP_GetGDIPrimaryDisplayId)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Mosaic_GetDisplayViewportsByResolution)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SYS_GetDisplayDriverInfo)
                 INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SYS_GetDriverAndBranchVersion)
