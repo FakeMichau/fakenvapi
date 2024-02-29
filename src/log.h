@@ -1,9 +1,12 @@
 #pragma once
 #include <iostream>
+#include <chrono>
+#include <cstdint>
 #include <string>
 #include <source_location>
 #include "../include/nvapi.h"
 
+void log_time();
 void log(std::string log);
 void prepareLogging(std::string fileName);
 void closeLogging();
