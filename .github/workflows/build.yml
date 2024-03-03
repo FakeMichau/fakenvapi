@@ -7,6 +7,12 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
       - name: Build
         uses: Joshua-Ashton/arch-mingw-github-action@9cdb815264bce7a6346927521b176f578982679d
         with:
@@ -15,7 +21,7 @@ jobs:
 
       - name: Create tarball
         run: tar cvfz "nvapi-dummy.tar.gz" -C "./build/nvapi-dummy-master" .
-        
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
