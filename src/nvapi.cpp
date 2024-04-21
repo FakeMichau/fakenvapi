@@ -129,11 +129,38 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetGpuCoreCount(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pCount) {
-        return Error(NVAPI_NO_IMPLEMENTATION);
+        *pCount = 1;
+        return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGPU, NV_GPU_CLOCK_FREQUENCIES* pClkFreqs) {
-        return Error(NVAPI_NOT_SUPPORTED);
+        if (pClkFreqs == nullptr)
+            return Error(NVAPI_INVALID_ARGUMENT);
+
+        if (pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_1 && pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_2 && pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_3)
+            return Error(NVAPI_INCOMPATIBLE_STRUCT_VERSION);
+
+        if (pClkFreqs->ClockType != static_cast<unsigned int>(NV_GPU_CLOCK_FREQUENCIES_CURRENT_FREQ)) {
+            return Error(NVAPI_NOT_SUPPORTED);
+        }
+
+        // Reset all clock data for all domains
+        for (auto& domain : pClkFreqs->domain) {
+            domain.bIsPresent = 0;
+            domain.frequency = 0;
+        }
+
+        unsigned int clock = 1600;
+
+        pClkFreqs->domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].bIsPresent = 1;
+        pClkFreqs->domain[NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS].frequency = (clock * 1000);
+
+        pClkFreqs->domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].bIsPresent = 1;
+        pClkFreqs->domain[NVAPI_GPU_PUBLIC_CLOCK_MEMORY].frequency = (clock * 1000);
+
+        pClkFreqs->domain[NVAPI_GPU_PUBLIC_CLOCK_VIDEO].bIsPresent = 1;
+        pClkFreqs->domain[NVAPI_GPU_PUBLIC_CLOCK_VIDEO].frequency = (clock * 1000);
+        return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetAdapterIdFromPhysicalGpu(NvPhysicalGpuHandle hPhysicalGpu, void* pOSAdapterId) {
@@ -162,7 +189,13 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Mosaic_GetDisplayViewportsByResolution(NvU32 displayId, NvU32 srcWidth, NvU32 srcHeight, NV_RECT viewports[NV_MOSAIC_MAX_DISPLAYS], NvU8* bezelCorrected) {
-        return Error(NVAPI_MOSAIC_NOT_ACTIVE);
+        for (int i = 0; i < NV_MOSAIC_MAX_DISPLAYS; i++) {
+            viewports[i].top = 0;
+            viewports[i].left = 0;
+            viewports[i].right = 0;
+            viewports[i].bottom = 0;
+        }
+        return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_SYS_GetDisplayDriverInfo(NV_DISPLAY_DRIVER_INFO* driverInfo) {
