@@ -2,7 +2,7 @@
 #include "util.h"
 
 namespace spoof {
-    constexpr NvU32 driverVersion = 54629;
+    constexpr NvU32 driverVersion = 99999;
     constexpr auto buildBranch = "buildBranch";
     constexpr NvU32 isDCHDriver = 1;
     constexpr NvU32 isNVIDIAStudioPackage = 1;
