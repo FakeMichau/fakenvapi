@@ -30,11 +30,6 @@ NvAPI_Status Ok(const std::source_location& location) {
     return NVAPI_OK;
 }
 
-NvAPI_Status Error(const std::source_location& location) {
-    log(std::format("{}: {}", location.function_name(), "Error"));
-    return NVAPI_ERROR;
-}
-
 NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
     log(std::format("{}: {}", location.function_name(), std::to_string(status)));
     return status;
