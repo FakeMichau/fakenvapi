@@ -16,9 +16,13 @@
 #include "log.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+    auto logEnv = std::getenv("NVAPI_LOG");
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
-        prepareLogging("nvapi-dummy.log");
+        if (logEnv && *logEnv == '1')
+            prepareLogging("nvapi-dummy.log");
+        else
+            prepareLogging(std::nullopt);
         log("--------------");
         break;
     case DLL_PROCESS_DETACH:
