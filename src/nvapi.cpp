@@ -76,6 +76,13 @@ namespace nvd {
         return Ok();
     }
 
+    NvAPI_Status __cdecl NvAPI_GetPhysicalGPUsFromDisplay(NvDisplayHandle hNvDisp, NvPhysicalGpuHandle nvGPUHandle[NVAPI_MAX_PHYSICAL_GPUS], NvU32* pGpuCount) {
+        nvGPUHandle[0] = nullptr;
+        *pGpuCount = 1;
+
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg) {
         std::string error = fromErrorNr(status);
         log(std::format("NvAPI_GetErrorMessage gave this error: {}", error));
@@ -204,7 +211,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI_ShortString szBuildBranchString) {
-        *pDriverVersion = spoof::driverVersion;
+        memset(pDriverVersion, 0, sizeof(NvU32));
+        memcpy(pDriverVersion, &spoof::driverVersion, sizeof(NvU32));
+        // *pDriverVersion = spoof::driverVersion;
         tonvss(szBuildBranchString, spoof::buildBranch);
         return Ok();
     }
