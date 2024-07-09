@@ -1,0 +1,61 @@
+name: Build on Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Meson
+        shell: pwsh
+        run: pip install meson
+
+      - name: Find Visual Studio
+        shell: pwsh
+        run: |
+          $installationPath = Get-VSSetupInstance `
+            | Select-VSSetupInstance -Require Microsoft.VisualStudio.Workload.NativeDesktop -Latest `
+            | Select-Object -ExpandProperty InstallationPath
+          Write-Output "VSDEVCMD=${installationPath}\Common7\Tools\VsDevCmd.bat" `
+            | Out-File -FilePath "${Env:GITHUB_ENV}" -Append
+            
+      - name: Build MSVC x86
+        shell: pwsh
+        run: |
+          & "${Env:COMSPEC}" /s /c "`"${Env:VSDEVCMD}`" -arch=x86 -host_arch=x64 -no_logo && set" `
+            | % { , ($_ -Split '=', 2) } `
+            | % { [System.Environment]::SetEnvironmentVariable($_[0], $_[1]) }
+          meson setup --buildtype release --backend vs2022 --default-library both --wipe build-msvc-x86
+          meson compile -C build-msvc-x86
+
+      - name: Build MSVC x64
+        shell: pwsh
+        run: |
+          & "${Env:COMSPEC}" /s /c "`"${Env:VSDEVCMD}`" -arch=x64 -host_arch=x64 -no_logo && set" `
+            | % { , ($_ -Split '=', 2) } `
+            | % { [System.Environment]::SetEnvironmentVariable($_[0], $_[1]) }
+          meson setup --buildtype release --backend vs2022 --default-library both --wipe build-msvc-x64
+          meson compile -C build-msvc-x64
+
+      - name: Prepare files
+        shell: pwsh
+        run: |
+          mkdir x86
+          cp build-msvc-x86/src/nvapi.dll x86
+          mkdir x64
+          cp build-msvc-x64/src/nvapi64.dll x64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-nvapi-master
+          path: | 
+            x86/
+            x64/
