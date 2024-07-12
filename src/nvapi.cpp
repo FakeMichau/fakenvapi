@@ -450,8 +450,8 @@ namespace nvd {
         return Ok();
     }
 
-    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, MiscUnk* pMiscUnk) {
-        *pMiscUnk = { 0x1, 0x1, 0x1, 0x1 };
+    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk) {
+        std::fill(pMiscUnk, pMiscUnk + 4, 0x1);
         return Ok();
     }
 }

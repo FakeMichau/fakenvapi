@@ -5,10 +5,6 @@
 #include <map>
 #include <cstdint>
 
-struct MiscUnk {
-    uint32_t data[4];
-};
-
 void tonvss(NvAPI_ShortString nvss, std::string str);
 
 #define INSERT_AND_RETURN_WHEN_EQUALS(method) \
