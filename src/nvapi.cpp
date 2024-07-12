@@ -449,4 +449,9 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_Unload() {
         return Ok();
     }
+
+    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, MiscUnk* pMiscUnk) {
+        *pMiscUnk = { 0x1, 0x1, 0x1, 0x1 };
+        return Ok();
+    }
 }

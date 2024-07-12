@@ -79,4 +79,5 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING* pSetting);
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session);
     NvAPI_Status __cdecl NvAPI_Unload();
+    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, MiscUnk* pMiscUnk);
 }

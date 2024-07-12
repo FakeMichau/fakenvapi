@@ -5,7 +5,15 @@
 #include <map>
 #include <cstdint>
 
+struct MiscUnk {
+    uint32_t data[4];
+};
+
 void tonvss(NvAPI_ShortString nvss, std::string str);
+
+#define INSERT_AND_RETURN_WHEN_EQUALS(method) \
+    if (std::string(it->func) == #method)     \
+        return registry.insert({id, (void *)method}).first->second;
 
 // function taken from jp7677's dxvk-nvapi project licensed under MIT
 inline std::string fromErrorNr(const int16_t errorNr) {
