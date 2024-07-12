@@ -3,7 +3,10 @@
 #include <chrono>
 #include <cstdint>
 #include <string>
+#include <fstream>
+#include <format>
 #include <source_location>
+#include "util.h"
 #include "../include/nvapi.h"
 
 std::string getCurrentTimeFormatted();

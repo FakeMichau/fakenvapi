@@ -1,6 +1,4 @@
 #include "log.h"
-#include <fstream>
-#include <format>
 
 std::ostream null(nullptr);
 std::ostream* logStream = &null;
@@ -31,7 +29,7 @@ NvAPI_Status Ok(const std::source_location& location) {
 }
 
 NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
-    log(std::format("{}: {}", location.function_name(), std::to_string(status)));
+    log(std::format("{}: {}", location.function_name(), fromErrorNr(status)));
     return status;
 }
 
