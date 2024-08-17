@@ -36,7 +36,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_Diag_ReportCallStart", 0x33c7358c },
     { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
-    { "MISC_unknown", 0xe9b009b9 }
+    { "MISC_unknown", 0xe9b009b9 },
+    { "MISC_vulkan", 0x17d13d6 }
 };
 
 namespace nvd {
@@ -89,6 +90,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetGpuCoreCount)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetAllClockFrequencies)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetAdapterIdFromPhysicalGpu)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetPstates20)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DISP_GetDisplayIdByDisplayName)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DISP_GetGDIPrimaryDisplayId)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Disp_SetOutputMode)
@@ -123,6 +125,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_DestroySession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
             INSERT_AND_RETURN_WHEN_EQUALS(MISC_unknown)
+            INSERT_AND_RETURN_WHEN_EQUALS(MISC_vulkan)
 
             log(std::format("{}: not implemented, placeholder given", it->func));
             return registry.insert({ id, (void*)placeholder }).first->second;

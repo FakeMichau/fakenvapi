@@ -175,6 +175,62 @@ namespace nvd {
         return Ok();
     }
 
+    NvAPI_Status __cdecl NvAPI_GPU_GetPstates20(NvPhysicalGpuHandle hPhysicalGpu, NV_GPU_PERF_PSTATES20_INFO* pPstatesInfo) {
+        if (!pPstatesInfo)
+            return Error();
+
+        // Initialize the structure with mock data
+        pPstatesInfo->version = NV_GPU_PERF_PSTATES20_INFO_VER;
+        pPstatesInfo->numPstates = 2;  // Example: 2 P-states
+        pPstatesInfo->numClocks = 3;
+        pPstatesInfo->numBaseVoltages = 1;
+        pPstatesInfo->ov.numVoltages = 0;
+        
+        // Fill mock data for P-state 0
+        pPstatesInfo->pstates[0].pstateId = NVAPI_GPU_PERF_PSTATE_P0;
+        pPstatesInfo->pstates[0].bIsEditable = false;
+        pPstatesInfo->pstates[0].clocks[0].domainId = NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS;
+        pPstatesInfo->pstates[0].clocks[0].freqDelta_kHz.value = 1000; // 1 MHz
+        pPstatesInfo->pstates[0].clocks[0].freqDelta_kHz.valueRange.min = 800;
+        pPstatesInfo->pstates[0].clocks[0].freqDelta_kHz.valueRange.max = 1200;
+        pPstatesInfo->pstates[0].clocks[1].domainId = NVAPI_GPU_PUBLIC_CLOCK_MEMORY;
+        pPstatesInfo->pstates[0].clocks[1].freqDelta_kHz.value = 1000; // 1 MHz
+        pPstatesInfo->pstates[0].clocks[1].freqDelta_kHz.valueRange.min = 800;
+        pPstatesInfo->pstates[0].clocks[1].freqDelta_kHz.valueRange.max = 1200;
+        pPstatesInfo->pstates[0].clocks[2].domainId = NVAPI_GPU_PUBLIC_CLOCK_VIDEO;
+        pPstatesInfo->pstates[0].clocks[2].freqDelta_kHz.value = 1000; // 1 MHz
+        pPstatesInfo->pstates[0].clocks[2].freqDelta_kHz.valueRange.min = 800;
+        pPstatesInfo->pstates[0].clocks[2].freqDelta_kHz.valueRange.max = 1200;
+        pPstatesInfo->pstates[0].baseVoltages[0].volt_uV = 1000000; // 1V
+        pPstatesInfo->pstates[0].baseVoltages[0].bIsEditable = false;
+        pPstatesInfo->pstates[0].baseVoltages[0].voltDelta_uV.value = 1000;
+        pPstatesInfo->pstates[0].baseVoltages[0].voltDelta_uV.valueRange.min = 0;
+        pPstatesInfo->pstates[0].baseVoltages[0].voltDelta_uV.valueRange.max = 0;
+
+        // Fill mock data for P-state 1
+        pPstatesInfo->pstates[1].pstateId = NVAPI_GPU_PERF_PSTATE_P1;
+        pPstatesInfo->pstates[1].bIsEditable = false;
+        pPstatesInfo->pstates[1].clocks[0].domainId = NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS;
+        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.value = 1000; // 1 MHz
+        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.valueRange.min = 800;
+        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.valueRange.max = 1200;
+        pPstatesInfo->pstates[1].clocks[1].domainId = NVAPI_GPU_PUBLIC_CLOCK_MEMORY;
+        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.value = 1000; // 1 MHz
+        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.valueRange.min = 800;
+        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.valueRange.max = 1200;
+        pPstatesInfo->pstates[1].clocks[2].domainId = NVAPI_GPU_PUBLIC_CLOCK_VIDEO;
+        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.value = 1000; // 1 MHz
+        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.valueRange.min = 800;
+        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.valueRange.max = 1200;
+        pPstatesInfo->pstates[1].baseVoltages[0].volt_uV = 1000000; // 1V
+        pPstatesInfo->pstates[1].baseVoltages[0].bIsEditable = false;
+        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.value = 1000;
+        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.valueRange.min = 0;
+        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.valueRange.max = 0;
+
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_DISP_GetDisplayIdByDisplayName(const char* displayName, NvU32* displayId) {
         *displayId = 0;
         return Ok();
@@ -452,6 +508,10 @@ namespace nvd {
 
     NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk) {
         std::fill(pMiscUnk, pMiscUnk + 4, 0x1);
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown) {
         return Ok();
     }
 }
