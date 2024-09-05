@@ -11,7 +11,10 @@
 #endif
 #include <vector>
 
+#if _MSC_VER
 #include "../include/ffx_antilag2_dx12.h"
+#endif
+
 #include "util.h"
 #include "spoofInfo.h"
 #include "log.h"
@@ -27,7 +30,9 @@ namespace nvd {
     static UINT subSysId;
     static UINT revisionId;
 
+#if _MSC_VER
     static AMD::AntiLag2DX12::Context al2_context = {};
+#endif
 
     NvAPI_Status __cdecl NvAPI_Initialize();
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc);

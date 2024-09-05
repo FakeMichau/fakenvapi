@@ -309,6 +309,7 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!pDev)
             return Error();
+#if _MSC_VER
         if (!al2_context.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDev->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
@@ -318,12 +319,14 @@ namespace nvd {
         if (pSetLatencyMarkerParams->markerType == SIMULATION_START) {
             AMD::AntiLag2DX12::Update(&al2_context, true, 0);
         }
+#endif
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
         if (!pDevice)
             return Error();
+#if _MSC_VER
         if (!al2_context.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
@@ -331,6 +334,7 @@ namespace nvd {
             log(std::format("AL2 Init: {}", S_OK == res));
         }
         AMD::AntiLag2DX12::Update(&al2_context, true, 0);
+#endif
         return Ok();
     }
 
