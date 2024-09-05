@@ -11,6 +11,7 @@
 #endif
 #include <vector>
 
+#include "../include/ffx_antilag2_dx12.h"
 #include "util.h"
 #include "spoofInfo.h"
 #include "log.h"
@@ -20,12 +21,13 @@ namespace nvd {
     static auto drsSession = reinterpret_cast<NvDRSSessionHandle>(&drs);
     static auto drsProfile = reinterpret_cast<NvDRSProfileHandle>(&drs);
 
-
     static LUID luid;
     static UINT deviceId;
     static UINT vendorId;
     static UINT subSysId;
     static UINT revisionId;
+
+    static AMD::AntiLag2DX12::Context al2_context = {};
 
     NvAPI_Status __cdecl NvAPI_Initialize();
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc);
