@@ -12,7 +12,7 @@
 #include <vector>
 
 #if _MSC_VER
-#include "../include/ffx_antilag2_dx12.h"
+#include "antilag.h"
 #endif
 
 #include "util.h"
@@ -31,7 +31,7 @@ namespace nvd {
     static UINT revisionId;
 
 #if _MSC_VER
-    static AMD::AntiLag2DX12::Context al2_context = {};
+    static AntiLag antilag_ctx;
 #endif
 
     NvAPI_Status __cdecl NvAPI_Initialize();

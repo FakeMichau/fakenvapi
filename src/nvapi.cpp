@@ -310,14 +310,9 @@ namespace nvd {
         if (!pDev)
             return Error();
 #if _MSC_VER
-        if (!al2_context.m_pAntiLagAPI) {
-            ID3D12Device* device = nullptr;
-            HRESULT hr = pDev->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
-            auto res = AMD::AntiLag2DX12::Initialize(&al2_context, device);
-            log(std::format("AL2 Init: {}", S_OK == res));
-        }
+        antilag_ctx.init(pDev);
         if (pSetLatencyMarkerParams->markerType == SIMULATION_START) {
-            AMD::AntiLag2DX12::Update(&al2_context, true, 0);
+            antilag_ctx.update();
         }
 #endif
         return Ok();
@@ -327,13 +322,8 @@ namespace nvd {
         if (!pDevice)
             return Error();
 #if _MSC_VER
-        if (!al2_context.m_pAntiLagAPI) {
-            ID3D12Device* device = nullptr;
-            HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
-            auto res = AMD::AntiLag2DX12::Initialize(&al2_context, device);
-            log(std::format("AL2 Init: {}", S_OK == res));
-        }
-        AMD::AntiLag2DX12::Update(&al2_context, true, 0);
+        antilag_ctx.init(pDevice);
+        antilag_ctx.update();
 #endif
         return Ok();
     }
