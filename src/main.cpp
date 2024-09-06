@@ -18,9 +18,10 @@
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     auto logEnv = std::getenv("NVAPI_LOG");
+    bool force_log = false;
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
-        if (logEnv && *logEnv == '1')
+        if ((logEnv && *logEnv == '1') || force_log)
             prepareLogging("nvapi-dummy.log");
         else
             prepareLogging(std::nullopt);
@@ -45,7 +46,8 @@ namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
             // return Ok();
-            return Error(NVAPI_NO_IMPLEMENTATION);
+            // return Error(NVAPI_NO_IMPLEMENTATION);
+            return NVAPI_NO_IMPLEMENTATION; // no logging
         }
 
         static std::unordered_map<NvU32, void*> registry;

@@ -16,42 +16,33 @@ class AntiLag {
     AMD::AntiLag2DX12::Context context_dx12 = {};
     AMD::AntiLag2DX11::Context context_dx11 = {};
     unsigned int max_fps = 0;
-
-    void init_dx12(ID3D12Device *pDevice) {
-        auto res = AMD::AntiLag2DX12::Initialize(&context_dx12, pDevice);
-    }
-    void init_dx11() {
-        auto res = AMD::AntiLag2DX11::Initialize(&context_dx11);
-    }
+    bool al_available = false;
 
 public:
-    void init(IUnknown *pDevice) {
+    bool calls_input_sample = false;
+    bool calls_sleep = false;
+
+    inline HRESULT init(IUnknown *pDevice) {
         if (!context_dx12.m_pAntiLagAPI && !context_dx11.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
+            HRESULT init_return = S_FALSE;
             if (hr == S_OK) {
-                init_dx12(device);
+                init_return = AMD::AntiLag2DX12::Initialize(&context_dx12, device);
             } else {
-                init_dx11();
+                init_return = AMD::AntiLag2DX11::Initialize(&context_dx11);
             }
+            al_available = init_return == S_OK;
         }
+        return 0x2137;
     }
 
-    void update() {
+    inline HRESULT update() {
+        if (!al_available) return S_FALSE;
         if (context_dx12.m_pAntiLagAPI)
-            AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
+            return AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
         else
-            AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
-    }
-
-    void mark_end_of_rendering() {
-        if (context_dx12.m_pAntiLagAPI)
-            AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
-    }
-
-    void present_start(bool interpolated_frame) {
-        if (context_dx12.m_pAntiLagAPI)
-            AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated_frame);
+            return AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
     }
 
     void set_fps_limit(unsigned int fps) {

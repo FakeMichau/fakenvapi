@@ -57,7 +57,7 @@ namespace nvd {
         if (displayId == 0) {
             return Ok();
         }
-        return Error(NVAPI_NVIDIA_DISPLAY_NOT_FOUND);
+        return Error(NVAPI_END_ENUMERATION);
     }
 
     NvAPI_Status __cdecl NvAPI_GetLogicalGPUFromPhysicalGPU(NvPhysicalGpuHandle physicalHandle, NvLogicalGpuHandle* logicalHandle) {
@@ -313,18 +313,18 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!pDev)
             return Error();
-        log(std::format("markerType: {}", (unsigned int)pSetLatencyMarkerParams->markerType));
+        log(std::format("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID));
 #if _MSC_VER
         antilag_ctx.init(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
-            antilag_ctx.update();
+            if (antilag_ctx.calls_input_sample || antilag_ctx.calls_sleep) break;
+            log(std::format("AntiLag update called on simulation start with result: {}", antilag_ctx.update()));
             break;
-        case RENDERSUBMIT_END:
-            antilag_ctx.mark_end_of_rendering();
-            break;
-        case PRESENT_START:
-            antilag_ctx.present_start(false);
+        case INPUT_SAMPLE:
+            if (antilag_ctx.calls_sleep) break;
+            antilag_ctx.calls_input_sample = true;
+            log(std::format("AntiLag update called on input sample with result: {}", antilag_ctx.update()));
             break;
         }
 #endif
@@ -336,7 +336,8 @@ namespace nvd {
             return Error();
 #if _MSC_VER
         antilag_ctx.init(pDevice);
-        antilag_ctx.update();
+        antilag_ctx.calls_sleep = true;
+        log(std::format("AntiLag update called on sleep with result: {}", antilag_ctx.update()));
 #endif
         return Ok();
     }
