@@ -303,16 +303,29 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
+#if _MSC_VER
+        if (pSetSleepModeParams->minimumIntervalUs > 0)
+            antilag_ctx.set_fps_limit(1000000 / pSetSleepModeParams->minimumIntervalUs);
+#endif
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!pDev)
             return Error();
+        log(std::format("markerType: {}", (unsigned int)pSetLatencyMarkerParams->markerType));
 #if _MSC_VER
         antilag_ctx.init(pDev);
-        if (pSetLatencyMarkerParams->markerType == SIMULATION_START) {
+        switch (pSetLatencyMarkerParams->markerType) {
+        case SIMULATION_START:
             antilag_ctx.update();
+            break;
+        case RENDERSUBMIT_END:
+            antilag_ctx.mark_end_of_rendering();
+            break;
+        case PRESENT_START:
+            antilag_ctx.present_start(false);
+            break;
         }
 #endif
         return Ok();

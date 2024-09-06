@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS 1
 #include <algorithm>
 #include <unordered_map>
 #include <format>

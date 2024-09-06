@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <d3d11.h>
+
 namespace AMD {
 namespace AntiLag2DX11 {
 
