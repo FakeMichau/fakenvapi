@@ -303,7 +303,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
-#if _MSC_VER
+#if _MSC_VER && _WIN64
         if (pSetSleepModeParams->minimumIntervalUs > 0)
             antilag_ctx.set_fps_limit(1000000 / pSetSleepModeParams->minimumIntervalUs);
 #endif
@@ -314,7 +314,7 @@ namespace nvd {
         if (!pDev)
             return Error();
         log(std::format("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID));
-#if _MSC_VER
+#if _MSC_VER && _WIN64
         antilag_ctx.init(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
@@ -334,7 +334,7 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
         if (!pDevice)
             return Error();
-#if _MSC_VER
+#if _MSC_VER && _WIN64
         antilag_ctx.init(pDevice);
         antilag_ctx.calls_sleep = true;
         log(std::format("AntiLag update called on sleep with result: {}", antilag_ctx.update()));
