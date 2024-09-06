@@ -11,7 +11,7 @@
 #endif
 #include <vector>
 
-#if _MSC_VER
+#if _MSC_VER && _WIN64
 #include "antilag.h"
 #endif
 
@@ -30,7 +30,7 @@ namespace nvd {
     static UINT subSysId;
     static UINT revisionId;
 
-#if _MSC_VER
+#if _MSC_VER && _WIN64
     static AntiLag antilag_ctx;
 #endif
 
