@@ -4,7 +4,7 @@ std::ostream null(nullptr);
 std::ostream* logStream = &null;
 std::ofstream fileStream;
 
-std::string getCurrentTimeFormatted() {
+inline std::string getCurrentTimeFormatted() {
     auto now = std::chrono::system_clock::now();
     auto now_t = std::chrono::system_clock::to_time_t(now);
     auto now_tm = *std::localtime(&now_t);
@@ -19,7 +19,7 @@ std::string getCurrentTimeFormatted() {
     return oss.str();
 }
 
-std::string extractFunctionName(const std::string& signature) {
+inline std::string extractFunctionName(const std::string& signature) {
     size_t start = signature.find("nvd::");
     if (start == std::string::npos) return {};
     start += 5;
@@ -29,14 +29,14 @@ std::string extractFunctionName(const std::string& signature) {
     return signature.substr(start, end - start);
 }
 
-void log(const std::string& log) {
+inline void log(const std::string& log) {
     std::ostringstream oss;
     oss << "[" << getCurrentTimeFormatted() << "] " << log << std::endl;
     *logStream << oss.str();
 }
 
 NvAPI_Status Ok(const std::source_location& location) {
-    log(std::format("{}: {}", extractFunctionName(location.function_name()), "OK"));
+    // log(std::format("{}: {}", extractFunctionName(location.function_name()), "OK"));
     return NVAPI_OK;
 }
 

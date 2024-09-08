@@ -18,7 +18,7 @@
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     auto logEnv = std::getenv("NVAPI_LOG");
-    bool force_log = true;
+    bool force_log = false;
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
         if ((logEnv && *logEnv == '1') || force_log)

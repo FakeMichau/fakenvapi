@@ -305,10 +305,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
-        unsigned int max_fps = pSetSleepModeParams->minimumIntervalUs > 0 ? 1000000 / pSetSleepModeParams->minimumIntervalUs : 0;
 #if _MSC_VER && _WIN64
         lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode; // untested
-        lowlatency_ctx.set_fps_limit(max_fps);
+        lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
 #endif
         return Ok();
     }
@@ -329,6 +328,8 @@ namespace nvd {
             lowlatency_ctx.call_spot = InputSample;
             log(std::format("LowLatency update called on input sample with result: {}", lowlatency_ctx.update()));
             break;
+        case PRESENT_START:
+            if (lowlatency_ctx.fg) lowlatency_ctx.mark_end_of_rendering();
         }
 #endif
         return Ok();
@@ -523,8 +524,10 @@ namespace nvd {
             constexpr unsigned int history_size = 10;
             static NvU64 counter = 0;
             static NvU64 previous_frame_ids[history_size] = {};
+            static NvU64 previous_frame_id = 0;
+            NvU64 current_frame_id = pSetAsyncFrameMarkerParams->frameID;
 
-            previous_frame_ids[counter%history_size] = pSetAsyncFrameMarkerParams->frameID;
+            previous_frame_ids[counter%history_size] = current_frame_id;
             counter++;
 
             std::unordered_set<NvU64> seen;
@@ -536,6 +539,9 @@ namespace nvd {
 
             if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
             else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
+
+            if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id != current_frame_id);
+            previous_frame_id = current_frame_id;
         }
 #endif
         log(std::format("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID));
@@ -566,6 +572,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Unload() {
+#if _MSC_VER && _WIN64
+        lowlatency_ctx.unload();
+#endif
         return Ok();
     }
 
@@ -579,6 +588,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime) {
+#if _MSC_VER && _WIN64
         if (!call_spot || !waitTarget || !latency || !frameTime) return Error(NVAPI_INVALID_POINTER);
 
         if (lowlatency_ctx.mode != LatencyFlex) return Error(NVAPI_DATA_NOT_FOUND);
@@ -589,5 +599,8 @@ namespace nvd {
         *frameTime = lowlatency_ctx.lfx_stats.frameTime;
 
         return Ok();
+#else
+        return Error(NVAPI_DATA_NOT_FOUND);
+#endif
     }
 }
