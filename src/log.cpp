@@ -19,17 +19,29 @@ std::string getCurrentTimeFormatted() {
     return oss.str();
 }
 
+std::string extractFunctionName(const std::string& signature) {
+    size_t start = signature.find("nvd::");
+    if (start == std::string::npos) return {};
+    start += 5;
+    size_t end = signature.find('(', start);
+    if (end == std::string::npos) return {};
+
+    return signature.substr(start, end - start);
+}
+
 void log(const std::string& log) {
-    *logStream << "[" << getCurrentTimeFormatted() << "] " << log << std::endl;
+    std::ostringstream oss;
+    oss << "[" << getCurrentTimeFormatted() << "] " << log << std::endl;
+    *logStream << oss.str();
 }
 
 NvAPI_Status Ok(const std::source_location& location) {
-    log(std::format("{}: {}", location.function_name(), "OK"));
+    log(std::format("{}: {}", extractFunctionName(location.function_name()), "OK"));
     return NVAPI_OK;
 }
 
 NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
-    log(std::format("{}: {}", location.function_name(), fromErrorNr(status)));
+    log(std::format("{}: {}", extractFunctionName(location.function_name()), fromErrorNr(status)));
     return status;
 }
 

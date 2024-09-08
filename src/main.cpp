@@ -18,7 +18,7 @@
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     auto logEnv = std::getenv("NVAPI_LOG");
-    bool force_log = false;
+    bool force_log = true;
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
         if ((logEnv && *logEnv == '1') || force_log)
@@ -39,7 +39,8 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_Diag_ReportCallStart", 0x33c7358c },
     { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
     { "MISC_unknown", 0xe9b009b9 },
-    { "MISC_vulkan", 0x17d13d6 }
+    { "MISC_vulkan", 0x17d13d6 },
+    { "Dummy_GetLatency", 0x21372137 }
 };
 
 namespace nvd {
@@ -110,6 +111,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetSleepMode)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetLatencyMarker)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_Sleep)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetReflexSync)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_BeginUAVOverlap)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_EndUAVOverlap)
@@ -129,6 +131,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
             INSERT_AND_RETURN_WHEN_EQUALS(MISC_unknown)
             INSERT_AND_RETURN_WHEN_EQUALS(MISC_vulkan)
+            INSERT_AND_RETURN_WHEN_EQUALS(Dummy_GetLatency)
 
             log(std::format("{}: not implemented, placeholder given", it->func));
             return registry.insert({ id, (void*)placeholder }).first->second;

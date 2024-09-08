@@ -1,6 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
+#include <numeric>
 #include <format>
 
 #include <dxgi.h>
@@ -12,7 +14,7 @@
 #include <vector>
 
 #if _MSC_VER && _WIN64
-#include "antilag.h"
+#include "lowlatency.h"
 #endif
 
 #include "util.h"
@@ -31,7 +33,7 @@ namespace nvd {
     static UINT revisionId;
 
 #if _MSC_VER && _WIN64
-    static AntiLag antilag_ctx;
+    static LowLatency lowlatency_ctx;
 #endif
 
     NvAPI_Status __cdecl NvAPI_Initialize();
@@ -70,6 +72,7 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams);
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice);
+    NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams);
     NvAPI_Status __cdecl NvAPI_D3D11_IsNvShaderExtnOpCodeSupported(IUnknown* invalid, NvU32 opCode, bool* pSupported);
     NvAPI_Status __cdecl NvAPI_D3D11_BeginUAVOverlap(IUnknown* pDeviceOrContext);
     NvAPI_Status __cdecl NvAPI_D3D11_EndUAVOverlap(IUnknown* pDeviceOrContext);
@@ -89,4 +92,5 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_Unload();
     NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk);
     NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown);
+    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime);
 }

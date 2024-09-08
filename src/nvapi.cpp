@@ -33,6 +33,8 @@ namespace nvd {
         pAdapter->Release();
         pFactory->Release();
 
+        lowlatency_ctx.init_lfx();
+
         return Ok();
     }
 
@@ -303,9 +305,10 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
+        unsigned int max_fps = pSetSleepModeParams->minimumIntervalUs > 0 ? 1000000 / pSetSleepModeParams->minimumIntervalUs : 0;
 #if _MSC_VER && _WIN64
-        if (pSetSleepModeParams->minimumIntervalUs > 0)
-            antilag_ctx.set_fps_limit(1000000 / pSetSleepModeParams->minimumIntervalUs);
+        lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode; // untested
+        lowlatency_ctx.set_fps_limit(max_fps);
 #endif
         return Ok();
     }
@@ -315,16 +318,16 @@ namespace nvd {
             return Error();
         log(std::format("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID));
 #if _MSC_VER && _WIN64
-        antilag_ctx.init(pDev);
+        lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
-            if (antilag_ctx.calls_input_sample || antilag_ctx.calls_sleep) break;
-            log(std::format("AntiLag update called on simulation start with result: {}", antilag_ctx.update()));
+            if (lowlatency_ctx.call_spot != SimulationStart) break;
+            log(std::format("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update()));
             break;
         case INPUT_SAMPLE:
-            if (antilag_ctx.calls_sleep) break;
-            antilag_ctx.calls_input_sample = true;
-            log(std::format("AntiLag update called on input sample with result: {}", antilag_ctx.update()));
+            if (lowlatency_ctx.call_spot == SleepCall) break;
+            lowlatency_ctx.call_spot = InputSample;
+            log(std::format("LowLatency update called on input sample with result: {}", lowlatency_ctx.update()));
             break;
         }
 #endif
@@ -335,10 +338,21 @@ namespace nvd {
         if (!pDevice)
             return Error();
 #if _MSC_VER && _WIN64
-        antilag_ctx.init(pDevice);
-        antilag_ctx.calls_sleep = true;
-        log(std::format("AntiLag update called on sleep with result: {}", antilag_ctx.update()));
+        lowlatency_ctx.init_al2(pDevice);
+        lowlatency_ctx.call_spot = SleepCall;
+        log(std::format("LowLatency update called on sleep with result: {}", lowlatency_ctx.update()));
 #endif
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
+        log("SetReflexSync");
+        log(std::format("\tdisable: {}", (unsigned long)pSetReflexSyncParams->bDisable));
+        log(std::format("\tenable: {}", (unsigned long)pSetReflexSyncParams->bEnable));
+        log(std::format("\ttimeInQueueUs: {}", (signed long)pSetReflexSyncParams->timeInQueueUs));
+        log(std::format("\ttimeInQueueUsTarget: {}", (unsigned long)pSetReflexSyncParams->timeInQueueUsTarget));
+        log(std::format("\tvblankIntervalUs: {}", (unsigned long)pSetReflexSyncParams->vblankIntervalUs));
+        log(std::format("\tvblankIntervalUs: {}", (unsigned long)pSetReflexSyncParams->version));
         return Ok();
     }
 
@@ -504,6 +518,27 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams) {
+#if _MSC_VER && _WIN64
+        if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START) {
+            constexpr unsigned int history_size = 10;
+            static NvU64 counter = 0;
+            static NvU64 previous_frame_ids[history_size] = {};
+
+            previous_frame_ids[counter%history_size] = pSetAsyncFrameMarkerParams->frameID;
+            counter++;
+
+            std::unordered_set<NvU64> seen;
+            int repeat_count = 0;
+            for (const int& frame_id : previous_frame_ids) {
+                if (seen.contains(frame_id)) repeat_count++;
+                else seen.insert(frame_id);
+            }
+
+            if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
+            else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
+        }
+#endif
+        log(std::format("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID));
         return Ok();
     }
 
@@ -540,6 +575,19 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime) {
+        if (!call_spot || !waitTarget || !latency || !frameTime) return Error(NVAPI_INVALID_POINTER);
+
+        if (lowlatency_ctx.mode != LatencyFlex) return Error(NVAPI_DATA_NOT_FOUND);
+        *call_spot = (uint64_t)lowlatency_ctx.call_spot;
+
+        *waitTarget = lowlatency_ctx.lfx_stats.target;
+        *latency = lowlatency_ctx.lfx_stats.latency;
+        *frameTime = lowlatency_ctx.lfx_stats.frameTime;
+
         return Ok();
     }
 }
