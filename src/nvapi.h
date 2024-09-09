@@ -13,9 +13,7 @@
 #endif
 #include <vector>
 
-#if _MSC_VER && _WIN64
 #include "lowlatency.h"
-#endif
 
 #include "util.h"
 #include "spoofInfo.h"
@@ -32,9 +30,7 @@ namespace nvd {
     static UINT subSysId;
     static UINT revisionId;
 
-#if _MSC_VER && _WIN64
     static LowLatency lowlatency_ctx;
-#endif
 
     NvAPI_Status __cdecl NvAPI_Initialize();
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc);

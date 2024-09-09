@@ -305,10 +305,8 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
-#if _MSC_VER && _WIN64
         lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode; // untested
         lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
-#endif
         return Ok();
     }
 
@@ -316,7 +314,6 @@ namespace nvd {
         if (!pDev)
             return Error();
         log(std::format("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID));
-#if _MSC_VER && _WIN64
         lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
@@ -331,18 +328,15 @@ namespace nvd {
         case PRESENT_START:
             if (lowlatency_ctx.fg) lowlatency_ctx.mark_end_of_rendering();
         }
-#endif
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
         if (!pDevice)
             return Error();
-#if _MSC_VER && _WIN64
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = SleepCall;
         log(std::format("LowLatency update called on sleep with result: {}", lowlatency_ctx.update()));
-#endif
         return Ok();
     }
 
@@ -519,7 +513,6 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams) {
-#if _MSC_VER && _WIN64
         if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START) {
             constexpr unsigned int history_size = 10;
             static NvU64 counter = 0;
@@ -531,8 +524,8 @@ namespace nvd {
             counter++;
 
             std::unordered_set<NvU64> seen;
-            int repeat_count = 0;
-            for (const int& frame_id : previous_frame_ids) {
+            unsigned int repeat_count = 0;
+            for (const NvU64& frame_id : previous_frame_ids) {
                 if (seen.contains(frame_id)) repeat_count++;
                 else seen.insert(frame_id);
             }
@@ -543,7 +536,6 @@ namespace nvd {
             if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id != current_frame_id);
             previous_frame_id = current_frame_id;
         }
-#endif
         log(std::format("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID));
         return Ok();
     }
@@ -572,9 +564,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Unload() {
-#if _MSC_VER && _WIN64
         lowlatency_ctx.unload();
-#endif
         return Ok();
     }
 

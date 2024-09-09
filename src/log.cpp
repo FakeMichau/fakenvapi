@@ -29,7 +29,7 @@ inline std::string extractFunctionName(const std::string& signature) {
     return signature.substr(start, end - start);
 }
 
-inline void log(const std::string& log) {
+void log(const std::string& log) {
     std::ostringstream oss;
     oss << "[" << getCurrentTimeFormatted() << "] " << log << std::endl;
     *logStream << oss.str();
