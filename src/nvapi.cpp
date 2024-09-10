@@ -328,6 +328,7 @@ namespace nvd {
             break;
         case PRESENT_START:
             if (lowlatency_ctx.fg) lowlatency_ctx.mark_end_of_rendering();
+            break;
         }
         return Ok();
     }
@@ -342,13 +343,6 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
-        log("SetReflexSync");
-        log(std::format("\tdisable: {}", (unsigned long)pSetReflexSyncParams->bDisable));
-        log(std::format("\tenable: {}", (unsigned long)pSetReflexSyncParams->bEnable));
-        log(std::format("\ttimeInQueueUs: {}", (signed long)pSetReflexSyncParams->timeInQueueUs));
-        log(std::format("\ttimeInQueueUsTarget: {}", (unsigned long)pSetReflexSyncParams->timeInQueueUsTarget));
-        log(std::format("\tvblankIntervalUs: {}", (unsigned long)pSetReflexSyncParams->vblankIntervalUs));
-        log(std::format("\tvblankIntervalUs: {}", (unsigned long)pSetReflexSyncParams->version));
         return Ok();
     }
 
@@ -428,6 +422,7 @@ namespace nvd {
         return Ok();
     }
 
+    // Taken directly from dxvk-nvapi
     static bool ConvertBuildRaytracingAccelerationStructureInputs(const NVAPI_D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS_EX* nvDesc, std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>& geometryDescs, D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS* d3dDesc) {
         d3dDesc->Type = nvDesc->type;
         // assume that OMM via VK_EXT_opacity_micromap and DMM via VK_NV_displacement_micromap are not supported, allow only standard flags to be passed
