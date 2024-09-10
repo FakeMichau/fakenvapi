@@ -529,7 +529,7 @@ namespace nvd {
             if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
             else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
 
-            if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id != current_frame_id);
+            if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
             previous_frame_id = current_frame_id;
         }
         log(std::format("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID));

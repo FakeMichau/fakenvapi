@@ -33,7 +33,7 @@ struct LFXStats {
     uint64_t latency = 0;
     uint64_t frame_time = 1;
     uint64_t target = 0;
-    uint64_t lfx_frame_id = 0;
+    uint64_t frame_id = 0;
     bool needs_reset = false;      
 };
 
@@ -91,25 +91,27 @@ public:
     inline HRESULT update() {
         if (!active) return S_FALSE;
 
-        if (al_available && !force_lfx) mode = AntiLag2;
-        else mode = LatencyFlex;
+        if (al_available && !force_lfx && (min_interval_us == 0 || !fg)) 
+            mode = AntiLag2;
+        else 
+            mode = LatencyFlex;
 
         log(std::format("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex"));
         log(std::format("FG status: {}", fg ? "enabled" : "disabled"));
 
         if (mode == AntiLag2) {
 #if _MSC_VER && _WIN64
-            if (lfx_stats.lfx_frame_id != 1) lfx_stats.needs_reset = true;
+            if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
             int max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
             if (context_dx12.m_pAntiLagAPI)
                 return AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
-            else
+            else if (context_dx11.m_pAntiLagAPI)
                 return AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
 #endif
         } else if (mode == LatencyFlex) {
             if (lfx_stats.needs_reset) {
                 log("LFX Reset");
-                lfx_stats.lfx_frame_id = 1;
+                lfx_stats.frame_id = 1;
                 lfx_stats.needs_reset = false;
                 lf->Reset();
             }
@@ -119,12 +121,14 @@ public:
             // Set FPS Limiter
             lf->target_frame_time = 1000 * min_interval_us;
 
-            lf->EndFrame(lfx_stats.lfx_frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+            lf->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
             log(std::format("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp));
-            lfx_stats.lfx_frame_id++;
-            lfx_stats.target = lf->GetWaitTarget(lfx_stats.lfx_frame_id);
+            lfx_stats.frame_id++;
+            lfx_stats.target = lf->GetWaitTarget(lfx_stats.frame_id);
 
             if (lfx_stats.target > current_timestamp) {
+                uint64_t extra_delay = 0;
+                // uint64_t extra_delay = (lfx_stats.target - current_timestamp) * 0.15;
                 static uint64_t timeout_events = 0;
                 uint64_t timeout_timestamp = current_timestamp + 50000000ULL;
                 if (lfx_stats.target > timeout_timestamp) {
@@ -132,15 +136,15 @@ public:
                     timeout_events++;
                     lfx_stats.needs_reset = timeout_events > 5;
                 } else {
-                    timestamp = lfx_stats.target;
+                    timestamp = lfx_stats.target + extra_delay;
                     timeout_events = 0;
                 }
-                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target - current_timestamp));
+                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target + extra_delay - current_timestamp));
             } else {
                 timestamp = current_timestamp;
             }
 
-            lf->BeginFrame(lfx_stats.lfx_frame_id, lfx_stats.target, timestamp);
+            lf->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
             return S_OK;
         }
         return S_FALSE;
