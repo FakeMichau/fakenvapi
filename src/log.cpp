@@ -30,18 +30,21 @@ inline std::string extractFunctionName(const std::string& signature) {
 }
 
 void log(const std::string& log) {
+    if (logStream == &null) return;
     std::ostringstream oss;
     oss << "[" << getCurrentTimeFormatted() << "] " << log << std::endl;
     *logStream << oss.str();
 }
 
 NvAPI_Status Ok(const std::source_location& location) {
-    // log(std::format("{}: {}", extractFunctionName(location.function_name()), "OK"));
+    if (logStream != &null)
+        log(std::format("{}: {}", extractFunctionName(location.function_name()), "OK"));
     return NVAPI_OK;
 }
 
 NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
-    log(std::format("{}: {}", extractFunctionName(location.function_name()), fromErrorNr(status)));
+    if (logStream != &null)
+        log(std::format("{}: {}", extractFunctionName(location.function_name()), fromErrorNr(status)));
     return status;
 }
 
