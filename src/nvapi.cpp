@@ -305,7 +305,8 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
-        lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode; // untested
+        lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
+        // lowlatency_ctx.force_lfx = pSetSleepModeParams->bLowLatencyBoost; // FOR TESTING
         lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
         return Ok();
     }
@@ -577,16 +578,16 @@ namespace nvd {
         return Ok();
     }
 
-    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime) {
+    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
 #if _MSC_VER && _WIN64
-        if (!call_spot || !waitTarget || !latency || !frameTime) return Error(NVAPI_INVALID_POINTER);
+        if (!call_spot || !target || !latency || !frame_time) return Error(NVAPI_INVALID_POINTER);
 
-        if (lowlatency_ctx.mode != LatencyFlex) return Error(NVAPI_DATA_NOT_FOUND);
+        if (lowlatency_ctx.get_mode() != LatencyFlex) return Error(NVAPI_DATA_NOT_FOUND);
         *call_spot = (uint64_t)lowlatency_ctx.call_spot;
 
-        *waitTarget = lowlatency_ctx.lfx_stats.target;
+        *target = lowlatency_ctx.lfx_stats.target;
         *latency = lowlatency_ctx.lfx_stats.latency;
-        *frameTime = lowlatency_ctx.lfx_stats.frameTime;
+        *frame_time = lowlatency_ctx.lfx_stats.frame_time;
 
         return Ok();
 #else

@@ -31,7 +31,7 @@ enum CallSpot {
 
 struct LFXStats {
     uint64_t latency = 0;
-    uint64_t frameTime = 1;
+    uint64_t frame_time = 1;
     uint64_t target = 0;
     uint64_t lfx_frame_id = 0;
     bool needs_reset = false;      
@@ -41,6 +41,9 @@ class LowLatency {
 #if _MSC_VER && _WIN64
     AMD::AntiLag2DX12::Context context_dx12 = {};
     AMD::AntiLag2DX11::Context context_dx11 = {};
+    Mode mode = AntiLag2;
+#else
+    Mode mode = LatencyFlex;
 #endif
     lfx::LatencyFleX *lf;
     unsigned long min_interval_us = 0;
@@ -57,14 +60,10 @@ class LowLatency {
 
 public:
     CallSpot call_spot = SimulationStart;
-#if _MSC_VER && _WIN64
-    Mode mode = AntiLag2;
-#else
-    Mode mode = LatencyFlex;
-#endif
     LFXStats lfx_stats = {};
     bool fg = false;
     bool active = true;
+    bool force_lfx = false;
 
     inline HRESULT init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
@@ -90,9 +89,9 @@ public:
     }
 
     inline HRESULT update() {
-        if (!active) return S_OK;
+        if (!active) return S_FALSE;
 
-        if (al_available) mode = AntiLag2;
+        if (al_available && !force_lfx) mode = AntiLag2;
         else mode = LatencyFlex;
 
         log(std::format("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex"));
@@ -114,33 +113,31 @@ public:
                 lfx_stats.needs_reset = false;
                 lf->Reset();
             }
-            uint64_t currentTimestamp = GetTimestamp();
+            uint64_t current_timestamp = GetTimestamp();
             uint64_t timestamp;
 
             // Set FPS Limiter
             lf->target_frame_time = 1000 * min_interval_us;
 
-            lf->EndFrame(lfx_stats.lfx_frame_id, currentTimestamp, &lfx_stats.latency, &lfx_stats.frameTime);
-            log(std::format("LFX latency: {}, frameTime: {}, currentTimestamp: {}", lfx_stats.latency, lfx_stats.frameTime, currentTimestamp));
+            lf->EndFrame(lfx_stats.lfx_frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+            log(std::format("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp));
             lfx_stats.lfx_frame_id++;
             lfx_stats.target = lf->GetWaitTarget(lfx_stats.lfx_frame_id);
 
-            auto diff = lfx_stats.target - currentTimestamp;
-            if (lfx_stats.target > currentTimestamp) {
+            if (lfx_stats.target > current_timestamp) {
                 static uint64_t timeout_events = 0;
-                uint64_t timeout_timestamp = currentTimestamp + 50000000ULL;
+                uint64_t timeout_timestamp = current_timestamp + 50000000ULL;
                 if (lfx_stats.target > timeout_timestamp) {
                     timestamp = timeout_timestamp;
                     timeout_events++;
-                    if (timeout_events > 5) lfx_stats.needs_reset = true;
+                    lfx_stats.needs_reset = timeout_events > 5;
                 } else {
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                // if (lfx_stats.lfx_frame_id > 30)
-                    std::this_thread::sleep_for(std::chrono::nanoseconds(diff));
+                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target - current_timestamp));
             } else {
-                timestamp = currentTimestamp;
+                timestamp = current_timestamp;
             }
 
             lf->BeginFrame(lfx_stats.lfx_frame_id, lfx_stats.target, timestamp);
@@ -151,18 +148,18 @@ public:
 
     inline HRESULT set_fg_type(bool interpolated) {
 #if _MSC_VER && _WIN64
-        return AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated);
-#else
-        return S_OK;
+        if (mode == AntiLag2)
+            return AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated);
 #endif
+        return S_FALSE;
     }
 
     inline HRESULT mark_end_of_rendering() {
 #if _MSC_VER && _WIN64
-        return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
-#else
-        return S_OK;
+        if (mode == AntiLag2)
+            return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
 #endif
+        return S_FALSE;
     }
 
     inline void unload() {
@@ -175,5 +172,9 @@ public:
     void set_min_interval_us(unsigned long interval_us) {
         log(std::format("Max fps: {}", interval_us > 0 ? 1000000 / interval_us : 0));
         min_interval_us = interval_us;
+    }
+
+    Mode get_mode() {
+        return mode;
     }
 };
