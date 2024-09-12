@@ -4,17 +4,17 @@
 
 #include <dxgi.h>
 #if defined __MINGW64__ || defined __MINGW32__
-#include "../include/d3d12.h"
+#include "../external/d3d12.h"
 #else
 #include <d3d12.h>
 #endif
 
 #if _MSC_VER && _WIN64
-#include "../include/ffx_antilag2_dx12.h"
-#include "../include/ffx_antilag2_dx11.h"
+#include "../external/ffx_antilag2_dx12.h"
+#include "../external/ffx_antilag2_dx11.h"
 #endif
 
-#include "../include/latencyflex.h"
+#include "../external/latencyflex.h"
 
 #include "log.h"
 

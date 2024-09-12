@@ -1,5 +1,4 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS 1
 #include <iostream>
 #include <chrono>
 #include <cstdint>
@@ -8,7 +7,7 @@
 #include <format>
 #include <source_location>
 #include "util.h"
-#include "../include/nvapi.h"
+#include "../external/nvapi.h"
 
 std::string getCurrentTimeFormatted();
 void log(const std::string& log);

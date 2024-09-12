@@ -16,7 +16,6 @@
 #include "lowlatency.h"
 
 #include "util.h"
-#include "spoofInfo.h"
 #include "log.h"
 
 namespace nvd {

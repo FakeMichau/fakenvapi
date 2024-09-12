@@ -1,6 +1,5 @@
 #pragma once
-#define _CRT_SECURE_NO_WARNINGS 1
-#include "../include/nvapi.h"
+#include "../external/nvapi.h"
 #include <string>
 #include <string.h>
 #include <map>

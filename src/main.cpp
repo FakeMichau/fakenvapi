@@ -1,18 +1,17 @@
-#define _CRT_SECURE_NO_WARNINGS 1
 #include <algorithm>
 #include <unordered_map>
 #include <format>
 
 #include <dxgi.h>
 #include <d3d11.h>
-#include "../include/nvapi_interface.h"
+#include "../external/nvapi_interface.h"
 #if defined __MINGW64__ || defined __MINGW32__
 #include "../include/d3d12.h"
 #else
 #include <d3d12.h>
 #endif
-#include "../include/nvapi.h"
-#include "nvapi.h"
+#include "../external/nvapi.h"
+#include "fakenvapi.h"
 
 #include "log.h"
 
