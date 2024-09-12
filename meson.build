@@ -1,4 +1,4 @@
-project('nvapi-dummy', 
+project('fakenvapi', 
     'cpp',
     default_options: [
         'cpp_std=c++20',
@@ -16,7 +16,12 @@ link_args = [
     '-Wl,--file-alignment=4096'
 ]
 
-compiler_args = ['-Wno-unused-parameter']
+compiler_args = [
+    '-Wno-unused-parameter',
+    '-D_CRT_SECURE_NO_WARNINGS'
+]
+
+spdlog_headers = include_directories('./external/spdlog/include')
 
 add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')

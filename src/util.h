@@ -1,5 +1,5 @@
 #pragma once
-#include "../include/nvapi.h"
+#include "../external/nvapi.h"
 #include <string>
 #include <string.h>
 #include <map>

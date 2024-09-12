@@ -1,24 +1,24 @@
-#include "nvapi.h"
+#include "fakenvapi.h"
 #include <string>
 
 namespace nvd {
     NvAPI_Status __cdecl NvAPI_Initialize() {
         IDXGIFactory1* pFactory = nullptr;
         if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
-            log("Failed to create DXGI Factory");
+            spdlog::error("Failed to create DXGI Factory");
             return Error();
         }
 
         IDXGIAdapter1* pAdapter = nullptr;
         if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
-            log("Failed to enumerate adapters");
+            spdlog::error("Failed to enumerate adapters");
             pFactory->Release();
             return Error();
         }
 
         DXGI_ADAPTER_DESC1 adapterDesc;
         if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
-            log("Failed to get adapter description");
+            spdlog::error("Failed to get adapter description");
             pAdapter->Release();
             pFactory->Release();
             return Error();
@@ -32,6 +32,8 @@ namespace nvd {
 
         pAdapter->Release();
         pFactory->Release();
+
+        lowlatency_ctx.init_lfx();
 
         return Ok();
     }
@@ -57,7 +59,7 @@ namespace nvd {
         if (displayId == 0) {
             return Ok();
         }
-        return Error(NVAPI_NVIDIA_DISPLAY_NOT_FOUND);
+        return Error(NVAPI_END_ENUMERATION);
     }
 
     NvAPI_Status __cdecl NvAPI_GetLogicalGPUFromPhysicalGPU(NvPhysicalGpuHandle physicalHandle, NvLogicalGpuHandle* logicalHandle) {
@@ -85,7 +87,7 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg) {
         std::string error = fromErrorNr(status);
-        log(std::format("NvAPI_GetErrorMessage gave this error: {}", error));
+        spdlog::error("NvAPI_GetErrorMessage gave this error: {}", error);
         tonvss(szMsg, error);
         return Ok();
     }
@@ -105,12 +107,12 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetArchInfo(NvPhysicalGpuHandle handle, NV_GPU_ARCH_INFO* archInfo) {
-        archInfo->architecture = spoof::arch;
-        archInfo->architecture_id = spoof::arch;
-        archInfo->implementation = spoof::implementation;
-        archInfo->implementation_id = spoof::implementation;
-        archInfo->revision = spoof::revision;
-        archInfo->revision_id = spoof::revision;
+        archInfo->architecture = NV_GPU_ARCHITECTURE_AD100;
+        archInfo->architecture_id = NV_GPU_ARCHITECTURE_AD100;
+        archInfo->implementation = NV_GPU_ARCH_IMPLEMENTATION_AD102;
+        archInfo->implementation_id = NV_GPU_ARCH_IMPLEMENTATION_AD102;
+        archInfo->revision = NV_GPU_CHIP_REV_UNKNOWN;
+        archInfo->revision_id = NV_GPU_CHIP_REV_UNKNOWN;
 
         return Ok();
     }
@@ -131,7 +133,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetFullName(NvPhysicalGpuHandle hPhysicalGpu, NvAPI_ShortString szName) {
-        tonvss(szName, spoof::fullGPUName);
+        tonvss(szName, "NVIDIA GeForce RTX 4090");
         return Ok();
     }
 
@@ -262,15 +264,19 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_SYS_GetDisplayDriverInfo(NV_DISPLAY_DRIVER_INFO* driverInfo) {
-        spoof::driverInfo(driverInfo);
+        driverInfo->driverVersion = 99999;
+        tonvss(driverInfo->szBuildBranch, "buildBranch");
+        driverInfo->bIsDCHDriver = 1;
+        driverInfo->bIsNVIDIAStudioPackage = 1;
+        driverInfo->bIsNVIDIARTXProductionBranchPackage = 1;
+        driverInfo->bIsNVIDIARTXNewFeatureBranchPackage = 1;
+        if (driverInfo->version == 2)
+            tonvss(driverInfo->szBuildBaseBranch, "buildBaseBranch");
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI_ShortString szBuildBranchString) {
-        memset(pDriverVersion, 0, sizeof(NvU32));
-        memcpy(pDriverVersion, &spoof::driverVersion, sizeof(NvU32));
-        // *pDriverVersion = spoof::driverVersion;
-        tonvss(szBuildBranchString, spoof::buildBranch);
+        tonvss(szBuildBranchString, "buildBranch");
         return Ok();
     }
 
@@ -295,6 +301,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams) {
+        pGetSleepStatusParams->bLowLatencyMode = lowlatency_ctx.active;
+        pGetSleepStatusParams->bFsVrr = true;
+        pGetSleepStatusParams->bCplVsyncOn = true;
         return Ok();
     }
 
@@ -303,14 +312,46 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
+        lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
+#ifdef TESTING
+        lowlatency_ctx.force_lfx = pSetSleepModeParams->bLowLatencyBoost;
+#endif
+        lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+        if (!pDev)
+            return Error();
+        spdlog::debug("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID);
+        lowlatency_ctx.init_al2(pDev);
+        switch (pSetLatencyMarkerParams->markerType) {
+        case SIMULATION_START:
+            if (lowlatency_ctx.call_spot != SimulationStart) break;
+            spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update());
+            break;
+        case INPUT_SAMPLE:
+            if (lowlatency_ctx.call_spot == SleepCall) break;
+            lowlatency_ctx.call_spot = InputSample;
+            spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update());
+            break;
+        case PRESENT_START:
+            if (lowlatency_ctx.fg) lowlatency_ctx.mark_end_of_rendering();
+            break;
+        }
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
+        if (!pDevice)
+            return Error();
+        lowlatency_ctx.init_al2(pDevice);
+        lowlatency_ctx.call_spot = SleepCall;
+        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update());
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
         return Ok();
     }
 
@@ -390,6 +431,7 @@ namespace nvd {
         return Ok();
     }
 
+    // Taken directly from dxvk-nvapi
     static bool ConvertBuildRaytracingAccelerationStructureInputs(const NVAPI_D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS_EX* nvDesc, std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>& geometryDescs, D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS* d3dDesc) {
         d3dDesc->Type = nvDesc->type;
         // assume that OMM via VK_EXT_opacity_micromap and DMM via VK_NV_displacement_micromap are not supported, allow only standard flags to be passed
@@ -426,13 +468,13 @@ namespace nvd {
                         d3dGeoDesc.AABBs = nvGeoDesc.aabbs;
                         break;
                     case NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES_EX: // GetRaytracingCaps reports no OMM caps, we shouldn't reach this
-                        log("Triangles with OMM attachment passed to acceleration structure build when OMM is not supported");
+                        spdlog::error("Triangles with OMM attachment passed to acceleration structure build when OMM is not supported");
                         return false;
                     case NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_DMM_TRIANGLES_EX: // GetRaytracingCaps reports no DMM caps, we shouldn't reach this
-                        log("Triangles with DMM attachment passed to acceleration structure build when DMM is not supported");
+                        spdlog::error("Triangles with DMM attachment passed to acceleration structure build when DMM is not supported");
                         return false;
                     default:
-                        log("Unknown NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_EX");
+                        spdlog::error("Unknown NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_EX");
                         return false;
                 }
             }
@@ -468,7 +510,12 @@ namespace nvd {
             return Error(NVAPI_INVALID_ARGUMENT);
 
         pCommandList->BuildRaytracingAccelerationStructure(&desc, pParams->numPostbuildInfoDescs, pParams->pPostbuildInfoDescs);
-        return Ok();
+        static bool logged = false;
+        if (!logged) {
+            logged = true;
+            return Ok();
+        }
+        else return NVAPI_OK; //return without logging
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_NotifyOutOfBandCommandQueue(ID3D12CommandQueue* pCommandQueue, NV_OUT_OF_BAND_CQ_TYPE cqType) {
@@ -476,6 +523,30 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams) {
+        if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START) {
+            constexpr unsigned int history_size = 10;
+            static NvU64 counter = 0;
+            static NvU64 previous_frame_ids[history_size] = {};
+            static NvU64 previous_frame_id = 0;
+            NvU64 current_frame_id = pSetAsyncFrameMarkerParams->frameID;
+
+            previous_frame_ids[counter%history_size] = current_frame_id;
+            counter++;
+
+            std::unordered_set<NvU64> seen;
+            unsigned int repeat_count = 0;
+            for (const NvU64& frame_id : previous_frame_ids) {
+                if (seen.contains(frame_id)) repeat_count++;
+                else seen.insert(frame_id);
+            }
+
+            if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
+            else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
+
+            if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
+            previous_frame_id = current_frame_id;
+        }
+        spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);
         return Ok();
     }
 
@@ -488,30 +559,57 @@ namespace nvd {
         return Ok();
     }
 
+    NvAPI_Status __cdecl NvAPI_DRS_SaveSettings(NvDRSSessionHandle session) {
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSProfileHandle* profile) {
         *profile = drsProfile;
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING* pSetting) {
-        log(std::format("Missing setting: {}", settingId));
-        return Error(NVAPI_SETTING_NOT_FOUND);
+        spdlog::debug("Missing get setting: {}", settingId);
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting) {
+        spdlog::debug("Missing set setting: {}", pSetting->settingId);
+        return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session) {
         return Ok();
     }
 
-    NvAPI_Status __cdecl NvAPI_Unload() {
-        return Ok();
-    }
-
-    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk) {
+    NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk) {
         std::fill(pMiscUnk, pMiscUnk + 4, 0x1);
         return Ok();
     }
 
-    NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown) {
         return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Unload() {
+        lowlatency_ctx.unload();
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
+#if _MSC_VER && _WIN64
+        if (!call_spot || !target || !latency || !frame_time) return Error(NVAPI_INVALID_POINTER);
+
+        if (lowlatency_ctx.get_mode() != LatencyFlex) return Error(NVAPI_DATA_NOT_FOUND);
+        *call_spot = (uint64_t)lowlatency_ctx.call_spot;
+
+        *target = lowlatency_ctx.lfx_stats.target;
+        *latency = lowlatency_ctx.lfx_stats.latency;
+        *frame_time = lowlatency_ctx.lfx_stats.frame_time;
+
+        return Ok();
+#else
+        return Error(NVAPI_DATA_NOT_FOUND);
+#endif
     }
 }

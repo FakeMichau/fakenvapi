@@ -4,26 +4,31 @@
 
 #include <dxgi.h>
 #include <d3d11.h>
-#include "../include/nvapi_interface.h"
+#include "../external/nvapi_interface.h"
 #if defined __MINGW64__ || defined __MINGW32__
 #include "../include/d3d12.h"
 #else
 #include <d3d12.h>
 #endif
-#include "../include/nvapi.h"
-#include "nvapi.h"
+#include "../external/nvapi.h"
+#include "fakenvapi.h"
 
 #include "log.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    auto logEnv = std::getenv("NVAPI_LOG");
+    auto logEnv = std::getenv("FAKENVAPI_LOG");
+#ifdef TESTING
+    bool force_log = true;
+#else
+    bool force_log = false;
+#endif
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
-        if (logEnv && *logEnv == '1')
-            prepareLogging("nvapi-dummy.log");
+        if ((logEnv && *logEnv == '1') || force_log)
+            prepareLogging(spdlog::level::trace);
         else
-            prepareLogging(std::nullopt);
-        log("--------------");
+            prepareLogging(spdlog::level::off);
+        spdlog::critical("----------------");
         break;
     case DLL_PROCESS_DETACH:
         closeLogging();
@@ -36,15 +41,17 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_Diag_ReportCallStart", 0x33c7358c },
     { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
-    { "MISC_unknown", 0xe9b009b9 },
-    { "MISC_vulkan", 0x17d13d6 }
+    { "NvAPI_Unknown_1", 0xe9b009b9 },
+    { "NvAPI_Vulkan_1", 0x17d13d6 },
+    { "Dummy_GetLatency", 0x21372137 }
 };
 
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
             // return Ok();
-            return Error(NVAPI_NO_IMPLEMENTATION);
+            // return Error(NVAPI_NO_IMPLEMENTATION);
+            return NVAPI_NO_IMPLEMENTATION; // no logging
         }
 
         static std::unordered_map<NvU32, void*> registry;
@@ -67,7 +74,7 @@ namespace nvd {
                 [id](const auto& item) { return item.id == id; });
 
             if (it == std::end(extended_interface_table)) {
-                log(std::format("NvAPI_QueryInterface (0x{:x}): Unknown interface ID", id));
+                spdlog::debug("NvAPI_QueryInterface (0x{:x}): Unknown interface ID", id);
                 return registry.insert({ id, nullptr }).first->second;
             }
 
@@ -107,6 +114,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetSleepMode)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetLatencyMarker)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_Sleep)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D_SetReflexSync)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_BeginUAVOverlap)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D11_EndUAVOverlap)
@@ -120,14 +128,17 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_SetAsyncFrameMarker)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_CreateSession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_LoadSettings)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SaveSettings)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_GetBaseProfile)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_GetSetting)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SetSetting)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_DestroySession)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unknown_1)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
-            INSERT_AND_RETURN_WHEN_EQUALS(MISC_unknown)
-            INSERT_AND_RETURN_WHEN_EQUALS(MISC_vulkan)
+            INSERT_AND_RETURN_WHEN_EQUALS(Dummy_GetLatency)
 
-            log(std::format("{}: not implemented, placeholder given", it->func));
+            spdlog::debug("{}: not implemented, placeholder given", it->func);
             return registry.insert({ id, (void*)placeholder }).first->second;
             // return registry.insert({ id, nullptr }).first->second;
         }

@@ -1,6 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
+#include <numeric>
 #include <format>
 
 #include <dxgi.h>
@@ -11,8 +13,9 @@
 #endif
 #include <vector>
 
+#include "lowlatency.h"
+
 #include "util.h"
-#include "spoofInfo.h"
 #include "log.h"
 
 namespace nvd {
@@ -20,12 +23,13 @@ namespace nvd {
     static auto drsSession = reinterpret_cast<NvDRSSessionHandle>(&drs);
     static auto drsProfile = reinterpret_cast<NvDRSProfileHandle>(&drs);
 
-
     static LUID luid;
     static UINT deviceId;
     static UINT vendorId;
     static UINT subSysId;
     static UINT revisionId;
+
+    static LowLatency lowlatency_ctx;
 
     NvAPI_Status __cdecl NvAPI_Initialize();
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc);
@@ -63,6 +67,7 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams);
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice);
+    NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams);
     NvAPI_Status __cdecl NvAPI_D3D11_IsNvShaderExtnOpCodeSupported(IUnknown* invalid, NvU32 opCode, bool* pSupported);
     NvAPI_Status __cdecl NvAPI_D3D11_BeginUAVOverlap(IUnknown* pDeviceOrContext);
     NvAPI_Status __cdecl NvAPI_D3D11_EndUAVOverlap(IUnknown* pDeviceOrContext);
@@ -76,10 +81,13 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams);
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session);
     NvAPI_Status __cdecl NvAPI_DRS_LoadSettings(NvDRSSessionHandle session);
+    NvAPI_Status __cdecl NvAPI_DRS_SaveSettings(NvDRSSessionHandle session);
     NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSProfileHandle* profile);
     NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING* pSetting);
+    NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting);
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session);
+    NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk);
+    NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_Unload();
-    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk);
-    NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown);
+    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime);
 }
