@@ -96,8 +96,8 @@ public:
         else 
             mode = LatencyFlex;
 
-        log(std::format("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex"));
-        log(std::format("FG status: {}", fg ? "enabled" : "disabled"));
+        spdlog::debug("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+        spdlog::debug("FG status: {}", fg ? "enabled" : "disabled");
 
         if (mode == AntiLag2) {
 #if _MSC_VER && _WIN64
@@ -110,7 +110,7 @@ public:
 #endif
         } else if (mode == LatencyFlex) {
             if (lfx_stats.needs_reset) {
-                log("LFX Reset");
+                spdlog::info("LFX Reset");
                 lfx_stats.frame_id = 1;
                 lfx_stats.needs_reset = false;
                 lf->Reset();
@@ -122,7 +122,7 @@ public:
             lf->target_frame_time = 1000 * min_interval_us;
 
             lf->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
-            log(std::format("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp));
+            spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
             lfx_stats.frame_id++;
             lfx_stats.target = lf->GetWaitTarget(lfx_stats.frame_id);
 
@@ -174,8 +174,10 @@ public:
     }
 
     void set_min_interval_us(unsigned long interval_us) {
-        log(std::format("Max fps: {}", interval_us > 0 ? 1000000 / interval_us : 0));
-        min_interval_us = interval_us;
+        if (min_interval_us != interval_us) {
+            min_interval_us = interval_us;
+            spdlog::info("Changed max fps: {}", interval_us > 0 ? 1000000 / interval_us : 0);
+        }
     }
 
     Mode get_mode() {

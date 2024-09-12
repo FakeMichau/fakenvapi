@@ -5,20 +5,20 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_Initialize() {
         IDXGIFactory1* pFactory = nullptr;
         if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
-            log("Failed to create DXGI Factory");
+            spdlog::error("Failed to create DXGI Factory");
             return Error();
         }
 
         IDXGIAdapter1* pAdapter = nullptr;
         if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
-            log("Failed to enumerate adapters");
+            spdlog::error("Failed to enumerate adapters");
             pFactory->Release();
             return Error();
         }
 
         DXGI_ADAPTER_DESC1 adapterDesc;
         if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
-            log("Failed to get adapter description");
+            spdlog::error("Failed to get adapter description");
             pAdapter->Release();
             pFactory->Release();
             return Error();
@@ -87,7 +87,7 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg) {
         std::string error = fromErrorNr(status);
-        log(std::format("NvAPI_GetErrorMessage gave this error: {}", error));
+        spdlog::error("NvAPI_GetErrorMessage gave this error: {}", error);
         tonvss(szMsg, error);
         return Ok();
     }
@@ -323,17 +323,17 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!pDev)
             return Error();
-        log(std::format("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID));
+        spdlog::debug("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID);
         lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
             if (lowlatency_ctx.call_spot != SimulationStart) break;
-            log(std::format("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update()));
+            spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update());
             break;
         case INPUT_SAMPLE:
             if (lowlatency_ctx.call_spot == SleepCall) break;
             lowlatency_ctx.call_spot = InputSample;
-            log(std::format("LowLatency update called on input sample with result: {}", lowlatency_ctx.update()));
+            spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update());
             break;
         case PRESENT_START:
             if (lowlatency_ctx.fg) lowlatency_ctx.mark_end_of_rendering();
@@ -347,7 +347,7 @@ namespace nvd {
             return Error();
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = SleepCall;
-        log(std::format("LowLatency update called on sleep with result: {}", lowlatency_ctx.update()));
+        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update());
         return Ok();
     }
 
@@ -468,13 +468,13 @@ namespace nvd {
                         d3dGeoDesc.AABBs = nvGeoDesc.aabbs;
                         break;
                     case NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES_EX: // GetRaytracingCaps reports no OMM caps, we shouldn't reach this
-                        log("Triangles with OMM attachment passed to acceleration structure build when OMM is not supported");
+                        spdlog::error("Triangles with OMM attachment passed to acceleration structure build when OMM is not supported");
                         return false;
                     case NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_DMM_TRIANGLES_EX: // GetRaytracingCaps reports no DMM caps, we shouldn't reach this
-                        log("Triangles with DMM attachment passed to acceleration structure build when DMM is not supported");
+                        spdlog::error("Triangles with DMM attachment passed to acceleration structure build when DMM is not supported");
                         return false;
                     default:
-                        log("Unknown NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_EX");
+                        spdlog::error("Unknown NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_EX");
                         return false;
                 }
             }
@@ -546,7 +546,7 @@ namespace nvd {
             if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
             previous_frame_id = current_frame_id;
         }
-        log(std::format("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID));
+        spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);
         return Ok();
     }
 
@@ -569,14 +569,13 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING* pSetting) {
-        log(std::format("Missing setting: {}", settingId));
+        spdlog::debug("Missing get setting: {}", settingId);
         return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting) {
-        log("NvAPI_DRS_SetSetting");
-        log(std::format("\tsettingId: {}", pSetting->settingId));
-        return NVAPI_OK;
+        spdlog::debug("Missing set setting: {}", pSetting->settingId);
+        return Ok();
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session) {

@@ -25,10 +25,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
         if ((logEnv && *logEnv == '1') || force_log)
-            prepareLogging("nvapi-dummy.log");
+            prepareLogging(spdlog::level::trace);
         else
-            prepareLogging(std::nullopt);
-        log("--------------");
+            prepareLogging(spdlog::level::off);
+        spdlog::critical("----------------");
         break;
     case DLL_PROCESS_DETACH:
         closeLogging();
@@ -74,7 +74,7 @@ namespace nvd {
                 [id](const auto& item) { return item.id == id; });
 
             if (it == std::end(extended_interface_table)) {
-                log(std::format("NvAPI_QueryInterface (0x{:x}): Unknown interface ID", id));
+                spdlog::debug("NvAPI_QueryInterface (0x{:x}): Unknown interface ID", id);
                 return registry.insert({ id, nullptr }).first->second;
             }
 
@@ -138,7 +138,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
             INSERT_AND_RETURN_WHEN_EQUALS(Dummy_GetLatency)
 
-            log(std::format("{}: not implemented, placeholder given", it->func));
+            spdlog::debug("{}: not implemented, placeholder given", it->func);
             return registry.insert({ id, (void*)placeholder }).first->second;
             // return registry.insert({ id, nullptr }).first->second;
         }

@@ -1,24 +1,5 @@
 #include "log.h"
 
-std::ostream null(nullptr);
-std::ostream* logStream = &null;
-std::ofstream fileStream;
-
-inline std::string getCurrentTimeFormatted() {
-    auto now = std::chrono::system_clock::now();
-    auto now_t = std::chrono::system_clock::to_time_t(now);
-    auto now_tm = *std::localtime(&now_t);
-    auto now_duration = now - std::chrono::system_clock::from_time_t(std::mktime(&now_tm));
-    auto now_us = std::chrono::duration_cast<std::chrono::microseconds>(now_duration);
-    std::ostringstream oss;
-    oss << std::setfill('0') << std::setw(2) << now_tm.tm_hour << ":"
-        << std::setfill('0') << std::setw(2) << now_tm.tm_min << ":"
-        << std::setfill('0') << std::setw(2) << now_tm.tm_sec << "."
-        << std::setfill('0') << std::setw(6) << now_us.count();
-
-    return oss.str();
-}
-
 inline std::string extractFunctionName(const std::string& signature) {
     size_t start = signature.find("nvd::");
     if (start == std::string::npos) return {};
@@ -29,39 +10,34 @@ inline std::string extractFunctionName(const std::string& signature) {
     return signature.substr(start, end - start);
 }
 
-void log(const std::string& log) {
-    if (logStream == &null) return;
-    std::ostringstream oss;
-    oss << "[" << getCurrentTimeFormatted() << "] " << log << std::endl;
-    *logStream << oss.str();
-}
-
 NvAPI_Status Ok(const std::source_location& location) {
-    if (logStream != &null)
-        log(std::format("{}: {}", extractFunctionName(location.function_name()), "OK"));
+    spdlog::trace("{}: {}", extractFunctionName(location.function_name()), "OK");
     return NVAPI_OK;
 }
 
 NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
-    if (logStream != &null)
-        log(std::format("{}: {}", extractFunctionName(location.function_name()), fromErrorNr(status)));
+    spdlog::trace("{}: {}", extractFunctionName(location.function_name()), fromErrorNr(status));
     return status;
 }
 
-void prepareLogging(std::optional<std::string> fileName) {
-    if (fileName.has_value()) {
-        fileStream.open(fileName.value(), std::ios_base::out | std::ios_base::app);
-        if (fileStream.is_open()) {
-            logStream = &fileStream;
-            return;
+void prepareLogging(spdlog::level::level_enum level) {
+    try {
+        if (level != spdlog::level::off) {
+            auto logger = spdlog::basic_logger_mt("basic_logger", "nvapi-dummy.log");
+            spdlog::set_default_logger(logger);
+            if (level == spdlog::level::trace)
+                spdlog::set_pattern("[%H:%M:%S.%f] [%L] [thread %t] %v");
+            else
+                spdlog::set_pattern("[%H:%M:%S.%f] [%L] %v");
+            spdlog::set_level(level);
+            spdlog::flush_on(level);
         }
-        else {
-            std::cerr << "Failed to open log file: " << fileName.value() << std::endl;
-        }
+    } catch (const spdlog::spdlog_ex &ex) {
+        std::cout << "Log init failed: " << ex.what() << std::endl;
     }
-    // logStream = &std::cout;
 }
 
 void closeLogging() {
-    fileStream.close();
+    spdlog::default_logger()->flush();
+	spdlog::shutdown();
 }

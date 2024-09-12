@@ -21,6 +21,8 @@ compiler_args = [
     '-D_CRT_SECURE_NO_WARNINGS'
 ]
 
+spdlog_headers = include_directories('./external/spdlog/include')
+
 add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')
 
