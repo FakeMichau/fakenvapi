@@ -1,4 +1,4 @@
-project('nvapi-dummy', 
+project('fakenvapi', 
     'cpp',
     default_options: [
         'cpp_std=c++20',

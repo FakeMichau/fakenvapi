@@ -16,7 +16,7 @@
 #include "log.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    auto logEnv = std::getenv("NVAPI_LOG");
+    auto logEnv = std::getenv("FAKENVAPI_LOG");
 #ifdef TESTING
     bool force_log = true;
 #else

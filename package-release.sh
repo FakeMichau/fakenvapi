@@ -11,7 +11,7 @@ fi
 
 VERSION="$1"
 SRC_DIR=$(dirname "$(readlink -f "$0")")
-BUILD_DIR=$(realpath "$2")"/nvapi-dummy-$VERSION"
+BUILD_DIR=$(realpath "$2")"/fakenvapi-$VERSION"
 
 if [ -e "$BUILD_DIR" ]; then
   echo "Build directory $BUILD_DIR already exists"

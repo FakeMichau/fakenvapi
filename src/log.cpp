@@ -23,7 +23,7 @@ NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
 void prepareLogging(spdlog::level::level_enum level) {
     try {
         if (level != spdlog::level::off) {
-            auto logger = spdlog::basic_logger_mt("basic_logger", "nvapi-dummy.log");
+            auto logger = spdlog::basic_logger_mt("basic_logger", "fakenvapi.log");
             spdlog::set_default_logger(logger);
             if (level == spdlog::level::trace)
                 spdlog::set_pattern("[%H:%M:%S.%f] [%L] [thread %t] %v");
