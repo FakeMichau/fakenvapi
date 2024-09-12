@@ -82,11 +82,13 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams);
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session);
     NvAPI_Status __cdecl NvAPI_DRS_LoadSettings(NvDRSSessionHandle session);
+    NvAPI_Status __cdecl NvAPI_DRS_SaveSettings(NvDRSSessionHandle session);
     NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSProfileHandle* profile);
     NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING* pSetting);
+    NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting);
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session);
+    NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk);
+    NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_Unload();
-    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk);
-    NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown);
     NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime);
 }

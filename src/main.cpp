@@ -18,7 +18,11 @@
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     auto logEnv = std::getenv("NVAPI_LOG");
+#ifdef TESTING
+    bool force_log = true;
+#else
     bool force_log = false;
+#endif
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
         if ((logEnv && *logEnv == '1') || force_log)
@@ -38,8 +42,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_Diag_ReportCallStart", 0x33c7358c },
     { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
-    { "MISC_unknown", 0xe9b009b9 },
-    { "MISC_vulkan", 0x17d13d6 },
+    { "NvAPI_Unknown_1", 0xe9b009b9 },
+    { "NvAPI_Vulkan_1", 0x17d13d6 },
     { "Dummy_GetLatency", 0x21372137 }
 };
 
@@ -125,12 +129,14 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_SetAsyncFrameMarker)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_CreateSession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_LoadSettings)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SaveSettings)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_GetBaseProfile)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_GetSetting)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SetSetting)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_DestroySession)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unknown_1)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
-            INSERT_AND_RETURN_WHEN_EQUALS(MISC_unknown)
-            INSERT_AND_RETURN_WHEN_EQUALS(MISC_vulkan)
             INSERT_AND_RETURN_WHEN_EQUALS(Dummy_GetLatency)
 
             log(std::format("{}: not implemented, placeholder given", it->func));

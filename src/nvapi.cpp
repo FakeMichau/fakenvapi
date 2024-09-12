@@ -297,6 +297,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams) {
+        pGetSleepStatusParams->bLowLatencyMode = lowlatency_ctx.active;
+        pGetSleepStatusParams->bFsVrr = true;
+        pGetSleepStatusParams->bCplVsyncOn = true;
         return Ok();
     }
 
@@ -306,7 +309,9 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
         lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
-        // lowlatency_ctx.force_lfx = pSetSleepModeParams->bLowLatencyBoost; // FOR TESTING
+#ifdef TESTING
+        lowlatency_ctx.force_lfx = pSetSleepModeParams->bLowLatencyBoost;
+#endif
         lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
         return Ok();
     }
@@ -501,7 +506,12 @@ namespace nvd {
             return Error(NVAPI_INVALID_ARGUMENT);
 
         pCommandList->BuildRaytracingAccelerationStructure(&desc, pParams->numPostbuildInfoDescs, pParams->pPostbuildInfoDescs);
-        return Ok();
+        static bool logged = false;
+        if (!logged) {
+            logged = true;
+            return Ok();
+        }
+        else return NVAPI_OK; //return without logging
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_NotifyOutOfBandCommandQueue(ID3D12CommandQueue* pCommandQueue, NV_OUT_OF_BAND_CQ_TYPE cqType) {
@@ -545,6 +555,10 @@ namespace nvd {
         return Ok();
     }
 
+    NvAPI_Status __cdecl NvAPI_DRS_SaveSettings(NvDRSSessionHandle session) {
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSProfileHandle* profile) {
         *profile = drsProfile;
         return Ok();
@@ -552,24 +566,30 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_DRS_GetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId, NVDRS_SETTING* pSetting) {
         log(std::format("Missing setting: {}", settingId));
-        return Error(NVAPI_SETTING_NOT_FOUND);
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting) {
+        log("NvAPI_DRS_SetSetting");
+        log(std::format("\tsettingId: {}", pSetting->settingId));
+        return NVAPI_OK;
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session) {
         return Ok();
     }
 
-    NvAPI_Status __cdecl NvAPI_Unload() {
-        lowlatency_ctx.unload();
-        return Ok();
-    }
-
-    NvAPI_Status __cdecl MISC_unknown(IUnknown* unknown, uint32_t* pMiscUnk) {
+    NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk) {
         std::fill(pMiscUnk, pMiscUnk + 4, 0x1);
         return Ok();
     }
 
-    NvAPI_Status __cdecl MISC_vulkan(IUnknown* unknown) {
+    NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Unload() {
+        lowlatency_ctx.unload();
         return Ok();
     }
 
