@@ -29,6 +29,12 @@ enum CallSpot {
     SimulationStart = 2
 };
 
+enum ForceReflex {
+    InGame,
+    ForceDisable,
+    ForceEnable
+};
+
 struct LFXStats {
     uint64_t latency = 0;
     uint64_t frame_time = 1;
@@ -49,7 +55,7 @@ class LowLatency {
     unsigned long min_interval_us = 0;
     bool al_available = false;
     bool force_latencyflex = false;
-    int force_reflex = 0;
+    ForceReflex force_reflex = InGame;
 
     static inline uint64_t GetTimestamp() {
         LARGE_INTEGER frequency;
@@ -66,34 +72,35 @@ public:
     bool fg = false;
     bool active = true;
 
-    inline HRESULT init_al2(IUnknown *pDevice) {
+    inline void init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
         if (mode == AntiLag2 && !context_dx12.m_pAntiLagAPI && !context_dx11.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
-            HRESULT init_return = S_FALSE;
             if (hr == S_OK) {
-                init_return = AMD::AntiLag2DX12::Initialize(&context_dx12, device);
+                HRESULT init_return = AMD::AntiLag2DX12::Initialize(&context_dx12, device);
+                al_available = init_return == S_OK;
+                spdlog::info("AntiLag 2 DX12 initialized");
             } else {
-                init_return = AMD::AntiLag2DX11::Initialize(&context_dx11);
+                HRESULT init_return = AMD::AntiLag2DX11::Initialize(&context_dx11);
+                al_available = init_return == S_OK;
+                spdlog::info("AntiLag 2 DX11 initialized");
             }
-            al_available = init_return == S_OK;
         }
 #else
         al_available = false;
 #endif
-        return 0x2137;
     }
 
     void init_lfx() {
         lf = new lfx::LatencyFleX();
         force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
-        // 0 - in-game, 1 - force disable, 2 - force enable
-        force_reflex = get_config(L"fakenvapi", L"force_reflex", 0);
+        force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
+        spdlog::info("LatencyFleX initialized");
     }
 
     inline HRESULT update() { 
-        if (force_reflex == 1 || (force_reflex == 0 && !active)) return S_FALSE;
+        if (force_reflex == ForceDisable || (force_reflex == InGame && !active)) return S_FALSE;
 
         if (al_available && !force_latencyflex && (min_interval_us == 0 || !fg)) 
             mode = AntiLag2;
@@ -131,8 +138,6 @@ public:
             lfx_stats.target = lf->GetWaitTarget(lfx_stats.frame_id);
 
             if (lfx_stats.target > current_timestamp) {
-                uint64_t extra_delay = 0;
-                // uint64_t extra_delay = (lfx_stats.target - current_timestamp) * 0.15;
                 static uint64_t timeout_events = 0;
                 uint64_t timeout_timestamp = current_timestamp + 50000000ULL;
                 if (lfx_stats.target > timeout_timestamp) {
@@ -140,10 +145,10 @@ public:
                     timeout_events++;
                     lfx_stats.needs_reset = timeout_events > 5;
                 } else {
-                    timestamp = lfx_stats.target + extra_delay;
+                    timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target + extra_delay - current_timestamp));
+                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target - current_timestamp));
             } else {
                 timestamp = current_timestamp;
             }
@@ -172,8 +177,10 @@ public:
 
     inline void unload() {
 #if _MSC_VER && _WIN64
-        if (context_dx12.m_pAntiLagAPI) AMD::AntiLag2DX12::DeInitialize(&context_dx12);
-        if (context_dx11.m_pAntiLagAPI) AMD::AntiLag2DX11::DeInitialize(&context_dx11);
+        if (context_dx12.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&context_dx12))
+            spdlog::info("AntiLag 2 DX12 deinitialized");
+        if (context_dx11.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&context_dx11))
+            spdlog::info("AntiLag 2 DX11 deinitialized");
 #endif
     }
 

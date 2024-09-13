@@ -594,7 +594,6 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
-#if _MSC_VER && _WIN64
         if (!call_spot || !target || !latency || !frame_time) return Error(NVAPI_INVALID_POINTER);
 
         if (lowlatency_ctx.get_mode() != LatencyFlex) return Error(NVAPI_DATA_NOT_FOUND);
@@ -605,8 +604,5 @@ namespace nvd {
         *frame_time = lowlatency_ctx.lfx_stats.frame_time;
 
         return Ok();
-#else
-        return Error(NVAPI_DATA_NOT_FOUND);
-#endif
     }
 }
