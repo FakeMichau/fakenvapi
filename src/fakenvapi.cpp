@@ -313,9 +313,6 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
         lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
-#ifdef TESTING
-        lowlatency_ctx.force_lfx = pSetSleepModeParams->bLowLatencyBoost;
-#endif
         lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
         return Ok();
     }

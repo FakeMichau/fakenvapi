@@ -16,15 +16,9 @@
 #include "log.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    auto logEnv = std::getenv("FAKENVAPI_LOG");
-#ifdef TESTING
-    bool force_log = true;
-#else
-    bool force_log = false;
-#endif
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
-        if ((logEnv && *logEnv == '1') || force_log)
+        if (get_config(L"fakenvapi", L"enable_log", false))
             prepareLogging(spdlog::level::trace);
         else
             prepareLogging(spdlog::level::off);

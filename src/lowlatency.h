@@ -48,6 +48,8 @@ class LowLatency {
     lfx::LatencyFleX *lf = nullptr;
     unsigned long min_interval_us = 0;
     bool al_available = false;
+    bool force_latencyflex = false;
+    int force_reflex = 0;
 
     static inline uint64_t GetTimestamp() {
         LARGE_INTEGER frequency;
@@ -63,7 +65,6 @@ public:
     LFXStats lfx_stats = {};
     bool fg = false;
     bool active = true;
-    bool force_lfx = false;
 
     inline HRESULT init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
@@ -86,12 +87,15 @@ public:
 
     void init_lfx() {
         lf = new lfx::LatencyFleX();
+        force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
+        // 0 - in-game, 1 - force disable, 2 - force enable
+        force_reflex = get_config(L"fakenvapi", L"force_reflex", 0);
     }
 
-    inline HRESULT update() {
-        if (!active) return S_FALSE;
+    inline HRESULT update() { 
+        if (force_reflex == 1 || (force_reflex == 0 && !active)) return S_FALSE;
 
-        if (al_available && !force_lfx && (min_interval_us == 0 || !fg)) 
+        if (al_available && !force_latencyflex && (min_interval_us == 0 || !fg)) 
             mode = AntiLag2;
         else 
             mode = LatencyFlex;

@@ -4,8 +4,11 @@
 #include <string.h>
 #include <map>
 #include <cstdint>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 void tonvss(NvAPI_ShortString nvss, std::string str);
+int get_config(const wchar_t* section, const wchar_t* key, int default_value);
 
 #define INSERT_AND_RETURN_WHEN_EQUALS(method) \
     if (std::string(it->func) == #method)     \
