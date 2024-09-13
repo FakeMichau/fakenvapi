@@ -3,10 +3,10 @@
 #include <chrono>
 
 #include <dxgi.h>
-#if defined __MINGW64__ || defined __MINGW32__
-#include "../external/d3d12.h"
-#else
+#if _MSC_VER
 #include <d3d12.h>
+#else
+#include "../external/d3d12.h"
 #endif
 
 #if _MSC_VER && _WIN64
@@ -45,7 +45,7 @@ class LowLatency {
 #else
     Mode mode = LatencyFlex;
 #endif
-    lfx::LatencyFleX *lf;
+    lfx::LatencyFleX *lf = nullptr;
     unsigned long min_interval_us = 0;
     bool al_available = false;
 

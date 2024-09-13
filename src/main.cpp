@@ -5,10 +5,10 @@
 #include <dxgi.h>
 #include <d3d11.h>
 #include "../external/nvapi_interface.h"
-#if defined __MINGW64__ || defined __MINGW32__
-#include "../include/d3d12.h"
-#else
+#if _MSC_VER
 #include <d3d12.h>
+#else
+#include "../external/d3d12.h"
 #endif
 #include "../external/nvapi.h"
 #include "fakenvapi.h"

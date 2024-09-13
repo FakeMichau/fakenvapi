@@ -18,7 +18,8 @@ link_args = [
 
 compiler_args = [
     '-Wno-unused-parameter',
-    '-D_CRT_SECURE_NO_WARNINGS'
+    '-D_CRT_SECURE_NO_WARNINGS',
+    '-D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR'
 ]
 
 spdlog_headers = include_directories('./external/spdlog/include')
