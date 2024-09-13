@@ -37,6 +37,11 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
     { "NvAPI_Unknown_1", 0xe9b009b9 },
     { "NvAPI_Vulkan_1", 0x17d13d6 },
+    { "NvAPI_SK_1", 0x57f7caac },
+    { "NvAPI_SK_2", 0x11104158 },
+    { "NvAPI_SK_3", 0xe3795199 },
+    { "NvAPI_SK_4", 0xdf0dfcdd },
+    { "NvAPI_SK_5", 0x932ac8fb },
     { "Dummy_GetLatency", 0x21372137 }
 };
 
@@ -81,6 +86,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetGPUIDfromPhysicalGPU)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUFromGPUID)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUsFromDisplay)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUsFromLogicalGPU)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetErrorMessage)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetLogicalGpuInfo)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetConnectedDisplayIds)
@@ -96,6 +102,8 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DISP_GetGDIPrimaryDisplayId)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Disp_SetOutputMode)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Disp_GetOutputMode)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Disp_GetHdrCapabilities)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Disp_HdrColorControl)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Mosaic_GetDisplayViewportsByResolution)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SYS_GetDisplayDriverInfo)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SYS_GetDriverAndBranchVersion)
@@ -129,6 +137,11 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_DestroySession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unknown_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_1)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_1)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_2)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_3)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_4)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_5)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
             INSERT_AND_RETURN_WHEN_EQUALS(Dummy_GetLatency)
 

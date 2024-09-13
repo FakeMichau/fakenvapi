@@ -85,6 +85,13 @@ namespace nvd {
         return Ok();
     }
 
+    NvAPI_Status __cdecl NvAPI_GetPhysicalGPUsFromLogicalGPU(NvLogicalGpuHandle hLogicalGPU, NvPhysicalGpuHandle hPhysicalGPU[NVAPI_MAX_PHYSICAL_GPUS], NvU32 *pGpuCount) {
+        hPhysicalGPU[0] = nullptr;
+        *pGpuCount = 1;
+
+        return Ok();
+    }
+
     NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg) {
         std::string error = fromErrorNr(status);
         spdlog::error("NvAPI_GetErrorMessage gave this error: {}", error);
@@ -250,6 +257,14 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_Disp_GetOutputMode(NvU32 displayId, NV_DISPLAY_OUTPUT_MODE* pDisplayMode) {
         *pDisplayMode = NV_DISPLAY_OUTPUT_MODE_SDR; // meaning no HDR
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Disp_GetHdrCapabilities(NvU32 displayId, NV_HDR_CAPABILITIES *pHdrCapabilities) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Disp_HdrColorControl(NvU32 displayId, NV_HDR_COLOR_DATA *pHdrColorData) {
         return Ok();
     }
 
@@ -585,6 +600,26 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_SK_1(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_SK_2(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_SK_3(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_SK_4(IUnknown* unknown) {
+        return Ok();
+    }
+
+    NvAPI_Status __cdecl NvAPI_SK_5(IUnknown* unknown) {
         return Ok();
     }
 
