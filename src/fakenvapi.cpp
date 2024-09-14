@@ -3,37 +3,39 @@
 
 namespace nvd {
     NvAPI_Status __cdecl NvAPI_Initialize() {
-        IDXGIFactory1* pFactory = nullptr;
-        if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
-            spdlog::error("Failed to create DXGI Factory");
-            return Error();
-        }
+        if (!deviceId) {
+            IDXGIFactory1* pFactory = nullptr;
+            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
+                spdlog::error("Failed to create DXGI Factory");
+                return Error();
+            }
 
-        IDXGIAdapter1* pAdapter = nullptr;
-        if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
-            spdlog::error("Failed to enumerate adapters");
-            pFactory->Release();
-            return Error();
-        }
+            IDXGIAdapter1* pAdapter = nullptr;
+            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
+                spdlog::error("Failed to enumerate adapters");
+                pFactory->Release();
+                return Error();
+            }
 
-        DXGI_ADAPTER_DESC1 adapterDesc;
-        if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
-            spdlog::error("Failed to get adapter description");
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
+                spdlog::error("Failed to get adapter description");
+                pAdapter->Release();
+                pFactory->Release();
+                return Error();
+            }
+
+            luid = adapterDesc.AdapterLuid;
+            deviceId = adapterDesc.DeviceId;
+            vendorId = adapterDesc.VendorId;
+            subSysId = adapterDesc.SubSysId;
+            revisionId = adapterDesc.Revision;
+
             pAdapter->Release();
             pFactory->Release();
-            return Error();
+
+            lowlatency_ctx.init_lfx();
         }
-
-        luid = adapterDesc.AdapterLuid;
-        deviceId = adapterDesc.DeviceId;
-        vendorId = adapterDesc.VendorId;
-        subSysId = adapterDesc.SubSysId;
-        revisionId = adapterDesc.Revision;
-
-        pAdapter->Release();
-        pFactory->Release();
-
-        lowlatency_ctx.init_lfx();
 
         return Ok();
     }

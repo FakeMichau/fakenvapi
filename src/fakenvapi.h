@@ -23,11 +23,11 @@ namespace nvd {
     static auto drsSession = reinterpret_cast<NvDRSSessionHandle>(&drs);
     static auto drsProfile = reinterpret_cast<NvDRSProfileHandle>(&drs);
 
-    static LUID luid;
-    static UINT deviceId;
-    static UINT vendorId;
-    static UINT subSysId;
-    static UINT revisionId;
+    static LUID luid = {};
+    static UINT deviceId = {};
+    static UINT vendorId = {};
+    static UINT subSysId = {};
+    static UINT revisionId = {};
 
     static LowLatency lowlatency_ctx;
 

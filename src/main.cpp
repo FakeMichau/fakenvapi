@@ -18,11 +18,13 @@
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
-        if (get_config(L"fakenvapi", L"enable_log", false))
-            prepareLogging(spdlog::level::trace);
+        if (get_config(L"fakenvapi", L"enable_logs", true))
+            if (get_config(L"fakenvapi", L"enable_trace_logs", false))
+                prepareLogging(spdlog::level::trace);
+            else
+                prepareLogging(spdlog::level::info);
         else
             prepareLogging(spdlog::level::off);
-        spdlog::critical("----------------");
         break;
     case DLL_PROCESS_DETACH:
         closeLogging();
