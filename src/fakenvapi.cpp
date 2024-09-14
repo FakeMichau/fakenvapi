@@ -335,6 +335,10 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!pDev)
             return Error();
+
+        if (lowlatency_ctx.ignore_frameid(pSetLatencyMarkerParams->frameID))
+            return NVAPI_OK;
+
         spdlog::debug("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID);
         lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
@@ -357,6 +361,15 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
         if (!pDevice)
             return Error();
+
+        // HACK for RTSS injecting markers and sleep even when a game sends them already
+        // TODO: option to reset the accepted_thread_id?
+        static std::thread::id accepted_thread_id = std::this_thread::get_id();
+        std::thread::id current_thread_id = std::this_thread::get_id();
+        spdlog::trace("Sleep called");
+        if (accepted_thread_id != current_thread_id && lowlatency_ctx.is_double_markers())
+            return NVAPI_OK; // skip that thread
+
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = SleepCall;
         spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update());
@@ -535,6 +548,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams) {
+        if (lowlatency_ctx.ignore_frameid(pSetAsyncFrameMarkerParams->frameID))
+            return NVAPI_OK;
+
         if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START) {
             constexpr unsigned int history_size = 10;
             static NvU64 counter = 0;

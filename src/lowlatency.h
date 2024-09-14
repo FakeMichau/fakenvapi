@@ -55,6 +55,7 @@ class LowLatency {
     unsigned long min_interval_us = 0;
     bool al_available = false;
     bool force_latencyflex = false;
+    bool double_markers = false;
     ForceReflex force_reflex = InGame;
 
     static inline uint64_t GetTimestamp() {
@@ -193,5 +194,23 @@ public:
 
     Mode get_mode() {
         return mode;
+    }
+
+    bool is_double_markers() {
+        return double_markers;
+    }
+
+    bool ignore_frameid(uint64_t frameid) {
+        constexpr uint64_t allowed_frameid_gap = 64;
+        static uint64_t max_frameid = allowed_frameid_gap;
+        if (bool result = frameid > max_frameid + allowed_frameid_gap; result) {
+            if (!double_markers)
+                spdlog::warn("Double reflex latency markers detected, disable RTSS!");
+            double_markers = true;
+            return result;
+        } else {
+            if (frameid > max_frameid) max_frameid = frameid;
+            return result;
+        }
     }
 };
