@@ -80,12 +80,20 @@ public:
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
             if (hr == S_OK) {
                 HRESULT init_return = AMD::AntiLag2DX12::Initialize(&context_dx12, device);
-                al_available = init_return == S_OK;
-                spdlog::info("AntiLag 2 DX12 initialized");
+                if (al_available = init_return == S_OK; !al_available) {
+                    mode = LatencyFlex;
+                    spdlog::info("AntiLag 2 DX12 initialization failed");
+                } else {
+                    spdlog::info("AntiLag 2 DX12 initialized");
+                }
             } else {
                 HRESULT init_return = AMD::AntiLag2DX11::Initialize(&context_dx11);
-                al_available = init_return == S_OK;
-                spdlog::info("AntiLag 2 DX11 initialized");
+                if (al_available = init_return == S_OK; !al_available) {
+                    mode = LatencyFlex;
+                    spdlog::info("AntiLag 2 DX11 initialization failed");
+                } else {
+                    spdlog::info("AntiLag 2 DX11 initialized");
+                }
             }
         }
 #else
@@ -103,10 +111,17 @@ public:
     inline HRESULT update() { 
         if (force_reflex == ForceDisable || (force_reflex == InGame && !active)) return S_FALSE;
 
+        Mode previous_mode = mode;
+        static bool previous_fg_status = fg;
+
         if (al_available && !force_latencyflex && (min_interval_us == 0 || !fg)) 
             mode = AntiLag2;
         else 
             mode = LatencyFlex;
+
+        if (previous_mode != mode) spdlog::info("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+        if (previous_fg_status != fg) spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
+        previous_fg_status = fg;
 
         spdlog::debug("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
         spdlog::debug("FG status: {}", fg ? "enabled" : "disabled");
@@ -162,7 +177,7 @@ public:
 
     inline HRESULT set_fg_type(bool interpolated) {
 #if _MSC_VER && _WIN64
-        if (mode == AntiLag2)
+        if (fg && mode == AntiLag2)
             return AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated);
 #endif
         return S_FALSE;
@@ -170,7 +185,7 @@ public:
 
     inline HRESULT mark_end_of_rendering() {
 #if _MSC_VER && _WIN64
-        if (mode == AntiLag2)
+        if (fg && mode == AntiLag2)
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
 #endif
         return S_FALSE;
