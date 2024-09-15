@@ -34,7 +34,7 @@ PERFETTO_DEFINE_CATEGORIES(
 #include <vector>
 
 #if defined __MINGW64__ || defined __MINGW32__
-#define max(a,b) (std::max(a,b))
+#define max(a, b) std::max(a, b)
 #endif
 
 namespace lfx {
@@ -288,5 +288,5 @@ private:
 #endif
 };
 } // namespace lfx
-
+#undef max
 #endif // LATENCYFLEX_H
