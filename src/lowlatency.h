@@ -124,7 +124,7 @@ public:
             mode = LatencyFlex;
 
         if (previous_mode != mode) {
-            spdlog::info("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+            spdlog::debug("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
             if (mode == LatencyFlex)
                 lfx_stats.needs_reset = true;
         }
