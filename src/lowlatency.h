@@ -137,7 +137,7 @@ public:
         if (mode == AntiLag2) {
 #if _MSC_VER && _WIN64
             int max_fps = 0; 
-            if (fg) {
+            if (fg && min_interval_us != 0) {
                 mode = LatencyFlex;
             } else {
                 if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
