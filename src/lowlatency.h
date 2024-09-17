@@ -58,13 +58,17 @@ class LowLatency {
     bool double_markers = false;
     ForceReflex force_reflex = InGame;
 
-    static inline uint64_t GetTimestamp() {
-        LARGE_INTEGER frequency;
-        LARGE_INTEGER counter;
+    static inline uint64_t get_timestamp() {
+        static LARGE_INTEGER frequency = []{
+            LARGE_INTEGER freq;
+            QueryPerformanceFrequency(&freq);
+            return freq;
+        }();
 
-        QueryPerformanceFrequency(&frequency);
+        LARGE_INTEGER counter;
         QueryPerformanceCounter(&counter);
-        return static_cast<uint64_t>(counter.QuadPart) * UINT64_C(1000000000) / static_cast<uint64_t>(frequency.QuadPart);
+        
+        return (counter.QuadPart * UINT64_C(1000000000)) / frequency.QuadPart;
     }
 
 public:
@@ -114,12 +118,16 @@ public:
         Mode previous_mode = mode;
         static bool previous_fg_status = fg;
 
-        if (al_available && !force_latencyflex && (min_interval_us == 0 || !fg)) 
+        if (al_available && !force_latencyflex) 
             mode = AntiLag2;
         else 
             mode = LatencyFlex;
 
-        if (previous_mode != mode) spdlog::info("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+        if (previous_mode != mode) {
+            spdlog::info("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+            if (mode == LatencyFlex)
+                lfx_stats.needs_reset = true;
+        }
         if (previous_fg_status != fg) spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
         previous_fg_status = fg;
 
@@ -128,21 +136,27 @@ public:
 
         if (mode == AntiLag2) {
 #if _MSC_VER && _WIN64
-            if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
-            int max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
+            int max_fps = 0; 
+            if (fg) {
+                mode = LatencyFlex;
+            } else {
+                if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
+                max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
+            }
             if (context_dx12.m_pAntiLagAPI)
-                return AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
+                AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
             else if (context_dx11.m_pAntiLagAPI)
-                return AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
+                AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
 #endif
-        } else if (mode == LatencyFlex) {
+        }
+        if (mode == LatencyFlex) {
             if (lfx_stats.needs_reset) {
                 spdlog::info("LFX Reset");
                 lfx_stats.frame_id = 1;
                 lfx_stats.needs_reset = false;
                 lf->Reset();
             }
-            uint64_t current_timestamp = GetTimestamp();
+            uint64_t current_timestamp = get_timestamp();
             uint64_t timestamp;
 
             // Set FPS Limiter
@@ -172,12 +186,12 @@ public:
             lf->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
             return S_OK;
         }
-        return S_FALSE;
+        return S_OK;
     }
 
     inline HRESULT set_fg_type(bool interpolated) {
 #if _MSC_VER && _WIN64
-        if (fg && mode == AntiLag2)
+        if (fg)
             return AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated);
 #endif
         return S_FALSE;
@@ -185,7 +199,7 @@ public:
 
     inline HRESULT mark_end_of_rendering() {
 #if _MSC_VER && _WIN64
-        if (fg && mode == AntiLag2)
+        if (fg)
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
 #endif
         return S_FALSE;
