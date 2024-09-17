@@ -354,6 +354,11 @@ namespace nvd {
         lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
+            if (lowlatency_ctx.call_spot == SleepCall) {
+                lowlatency_ctx.calls_without_sleep++;
+                if (lowlatency_ctx.calls_without_sleep > 10)
+                    lowlatency_ctx.call_spot = SimulationStart;
+            }
             if (lowlatency_ctx.call_spot != SimulationStart) break;
             spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update());
             break;
@@ -383,6 +388,7 @@ namespace nvd {
 
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = SleepCall;
+        lowlatency_ctx.calls_without_sleep = 0;
         spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update());
         return Ok();
     }

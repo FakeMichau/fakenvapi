@@ -74,6 +74,7 @@ class LowLatency {
 public:
     CallSpot call_spot = SimulationStart;
     LFXStats lfx_stats = {};
+    uint64_t calls_without_sleep = 0;
     bool fg = false;
     bool active = true;
 
