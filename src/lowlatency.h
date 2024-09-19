@@ -179,7 +179,7 @@ public:
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target - current_timestamp));
+                std::this_thread::sleep_for(std::chrono::nanoseconds(timestamp - current_timestamp));
             } else {
                 timestamp = current_timestamp;
             }
