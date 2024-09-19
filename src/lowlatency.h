@@ -72,7 +72,7 @@ class LowLatency {
     }
 
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
-    static inline bool microsleep(int64_t ticks, bool full_resolution = false){
+    static inline int microsleep(int64_t ticks, bool full_resolution = false){
         static HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
         LARGE_INTEGER liDueTime;
 
@@ -82,15 +82,15 @@ class LowLatency {
             liDueTime.QuadPart = -ticks * 10LL;
 
         if(!hTimer)
-            return false;
+            return 1;
 
         if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0))
-            return false;
+            return 2;
 
         if (WaitForSingleObject(hTimer, INFINITE) != WAIT_OBJECT_0)
-            return false;
+            return 3;
 
-        return true;
+        return 0;
     };
 
 public:
@@ -166,8 +166,8 @@ public:
                 uint64_t current_time = get_timestamp();
                 uint64_t frame_time = current_time - previous_frame_time;
                 if (frame_time < 1000 * min_interval_us) {
-                    if(microsleep(min_interval_us - frame_time / 1000))
-                        spdlog::error("Sleep command failed");
+                    if (auto res = microsleep(min_interval_us - frame_time / 1000); res)
+                        spdlog::error("Sleep command failed: {}", res);
                 }
                 previous_frame_time = get_timestamp();
             } else {
@@ -207,8 +207,8 @@ public:
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                if (microsleep((timestamp - current_timestamp) / 100, true))
-                    spdlog::error("Sleep command failed");
+                if (auto res = microsleep((timestamp - current_timestamp) / 100, true); res)
+                    spdlog::error("Sleep command failed: {}", res);
             } else {
                 timestamp = current_timestamp;
             }
