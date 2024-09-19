@@ -231,16 +231,19 @@ public:
     }
 
     bool ignore_frameid(uint64_t frameid) {
-        constexpr uint64_t allowed_frameid_gap = 64;
-        static uint64_t max_frameid = allowed_frameid_gap;
-        if (bool result = frameid > max_frameid + allowed_frameid_gap; result) {
-            if (!double_markers)
-                spdlog::warn("Double reflex latency markers detected, disable RTSS!");
-            double_markers = true;
-            return result;
+        constexpr uint64_t high_frameid_threshold = 10000000;
+        static bool low_frameid_encountered = false;
+        if (frameid < high_frameid_threshold) {
+            low_frameid_encountered = true;
+            return false;
         } else {
-            if (frameid > max_frameid) max_frameid = frameid;
-            return result;
+            if (low_frameid_encountered) {
+                if (!double_markers)
+                    spdlog::warn("Double reflex latency markers detected, disable RTSS!");
+                double_markers = true;
+            }
+            // For high frameids return true only if a low number has been seen before
+            return low_frameid_encountered;
         }
     }
 };
