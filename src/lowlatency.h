@@ -137,20 +137,25 @@ public:
 
         if (mode == AntiLag2) {
 #if _MSC_VER && _WIN64
+            if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
             int max_fps = 0; 
             if (fg && min_interval_us != 0) {
-                mode = LatencyFlex;
+                static uint64_t previous_frame_time = 0;
+                uint64_t current_time = get_timestamp();
+                uint64_t frame_time = current_time - previous_frame_time;
+                if (frame_time < 1000 * min_interval_us) {
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(1000 * min_interval_us - frame_time));
+                }
+                previous_frame_time = get_timestamp();
             } else {
-                if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
                 max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
             }
             if (context_dx12.m_pAntiLagAPI)
-                AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
+                return AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
             else if (context_dx11.m_pAntiLagAPI)
-                AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
+                return AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
 #endif
-        }
-        if (mode == LatencyFlex) {
+        } else if (mode == LatencyFlex) {
             if (lfx_stats.needs_reset) {
                 spdlog::info("LFX Reset");
                 lfx_stats.frame_id = 1;
@@ -187,7 +192,7 @@ public:
             lf->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
             return S_OK;
         }
-        return S_OK;
+        return S_FALSE;
     }
 
     inline HRESULT set_fg_type(bool interpolated) {
