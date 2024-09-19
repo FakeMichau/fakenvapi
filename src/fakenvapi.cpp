@@ -329,7 +329,16 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
-        lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
+        static bool previous_boost = false;
+        if (lowlatency_ctx.active != pSetSleepModeParams->bLowLatencyMode || previous_boost != pSetSleepModeParams->bLowLatencyBoost) {
+            spdlog::info(
+                "Changed reflex settings to: {}, boost: {}", 
+                pSetSleepModeParams->bLowLatencyMode ? "enabled" : "disabled", 
+                pSetSleepModeParams->bLowLatencyBoost ? "enabled" : "disabled"
+            );
+            lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
+            previous_boost = pSetSleepModeParams->bLowLatencyBoost;
+        }
         lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
         return Ok();
     }
@@ -345,6 +354,11 @@ namespace nvd {
         lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
+            if (lowlatency_ctx.call_spot == SleepCall) {
+                lowlatency_ctx.calls_without_sleep++;
+                if (lowlatency_ctx.calls_without_sleep > 10)
+                    lowlatency_ctx.call_spot = SimulationStart;
+            }
             if (lowlatency_ctx.call_spot != SimulationStart) break;
             spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update());
             break;
@@ -354,7 +368,7 @@ namespace nvd {
             spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update());
             break;
         case PRESENT_START:
-            if (lowlatency_ctx.fg) lowlatency_ctx.mark_end_of_rendering();
+            lowlatency_ctx.mark_end_of_rendering();
             break;
         }
         return Ok();
@@ -374,6 +388,7 @@ namespace nvd {
 
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = SleepCall;
+        lowlatency_ctx.calls_without_sleep = 0;
         spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update());
         return Ok();
     }
@@ -573,7 +588,7 @@ namespace nvd {
             if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
             else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
 
-            if (lowlatency_ctx.fg) lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
+            lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
             previous_frame_id = current_frame_id;
         }
         spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);

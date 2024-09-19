@@ -58,18 +58,45 @@ class LowLatency {
     bool double_markers = false;
     ForceReflex force_reflex = InGame;
 
-    static inline uint64_t GetTimestamp() {
-        LARGE_INTEGER frequency;
-        LARGE_INTEGER counter;
+    static inline uint64_t get_timestamp() {
+        static LARGE_INTEGER frequency = []{
+            LARGE_INTEGER freq;
+            QueryPerformanceFrequency(&freq);
+            return freq;
+        }();
 
-        QueryPerformanceFrequency(&frequency);
+        LARGE_INTEGER counter;
         QueryPerformanceCounter(&counter);
-        return static_cast<uint64_t>(counter.QuadPart) * UINT64_C(1000000000) / static_cast<uint64_t>(frequency.QuadPart);
+        
+        return (counter.QuadPart * UINT64_C(1000000000)) / frequency.QuadPart;
     }
+
+    // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
+    static inline int microsleep(int64_t ticks, bool full_resolution = false){
+        static HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+        LARGE_INTEGER liDueTime;
+
+        if (full_resolution)
+            liDueTime.QuadPart = -ticks;
+        else
+            liDueTime.QuadPart = -ticks * 10LL;
+
+        if(!hTimer)
+            return 1;
+
+        if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0))
+            return 2;
+
+        if (WaitForSingleObject(hTimer, INFINITE) != WAIT_OBJECT_0)
+            return 3;
+
+        return 0;
+    };
 
 public:
     CallSpot call_spot = SimulationStart;
     LFXStats lfx_stats = {};
+    uint64_t calls_without_sleep = 0;
     bool fg = false;
     bool active = true;
 
@@ -80,12 +107,20 @@ public:
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
             if (hr == S_OK) {
                 HRESULT init_return = AMD::AntiLag2DX12::Initialize(&context_dx12, device);
-                al_available = init_return == S_OK;
-                spdlog::info("AntiLag 2 DX12 initialized");
+                if (al_available = init_return == S_OK; !al_available) {
+                    mode = LatencyFlex;
+                    spdlog::info("AntiLag 2 DX12 initialization failed");
+                } else {
+                    spdlog::info("AntiLag 2 DX12 initialized");
+                }
             } else {
                 HRESULT init_return = AMD::AntiLag2DX11::Initialize(&context_dx11);
-                al_available = init_return == S_OK;
-                spdlog::info("AntiLag 2 DX11 initialized");
+                if (al_available = init_return == S_OK; !al_available) {
+                    mode = LatencyFlex;
+                    spdlog::info("AntiLag 2 DX11 initialization failed");
+                } else {
+                    spdlog::info("AntiLag 2 DX11 initialized");
+                }
             }
         }
 #else
@@ -103,10 +138,21 @@ public:
     inline HRESULT update() { 
         if (force_reflex == ForceDisable || (force_reflex == InGame && !active)) return S_FALSE;
 
-        if (al_available && !force_latencyflex && (min_interval_us == 0 || !fg)) 
+        Mode previous_mode = mode;
+        static bool previous_fg_status = fg;
+
+        if (al_available && !force_latencyflex) 
             mode = AntiLag2;
         else 
             mode = LatencyFlex;
+
+        if (previous_mode != mode) {
+            spdlog::debug("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+            if (mode == LatencyFlex)
+                lfx_stats.needs_reset = true;
+        }
+        if (previous_fg_status != fg) spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
+        previous_fg_status = fg;
 
         spdlog::debug("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
         spdlog::debug("FG status: {}", fg ? "enabled" : "disabled");
@@ -114,7 +160,19 @@ public:
         if (mode == AntiLag2) {
 #if _MSC_VER && _WIN64
             if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
-            int max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
+            int max_fps = 0; 
+            if (fg && min_interval_us != 0) {
+                static uint64_t previous_frame_time = 0;
+                uint64_t current_time = get_timestamp();
+                uint64_t frame_time = current_time - previous_frame_time;
+                if (frame_time < 1000 * min_interval_us) {
+                    if (auto res = microsleep(min_interval_us - frame_time / 1000); res)
+                        spdlog::error("Sleep command failed: {}", res);
+                }
+                previous_frame_time = get_timestamp();
+            } else {
+                max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
+            }
             if (context_dx12.m_pAntiLagAPI)
                 return AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
             else if (context_dx11.m_pAntiLagAPI)
@@ -127,7 +185,7 @@ public:
                 lfx_stats.needs_reset = false;
                 lf->Reset();
             }
-            uint64_t current_timestamp = GetTimestamp();
+            uint64_t current_timestamp = get_timestamp();
             uint64_t timestamp;
 
             // Set FPS Limiter
@@ -149,7 +207,8 @@ public:
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                std::this_thread::sleep_for(std::chrono::nanoseconds(lfx_stats.target - current_timestamp));
+                if (auto res = microsleep((timestamp - current_timestamp) / 100, true); res)
+                    spdlog::error("Sleep command failed: {}", res);
             } else {
                 timestamp = current_timestamp;
             }
@@ -162,7 +221,7 @@ public:
 
     inline HRESULT set_fg_type(bool interpolated) {
 #if _MSC_VER && _WIN64
-        if (mode == AntiLag2)
+        if (fg)
             return AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated);
 #endif
         return S_FALSE;
@@ -170,7 +229,7 @@ public:
 
     inline HRESULT mark_end_of_rendering() {
 #if _MSC_VER && _WIN64
-        if (mode == AntiLag2)
+        if (fg)
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
 #endif
         return S_FALSE;
@@ -201,16 +260,19 @@ public:
     }
 
     bool ignore_frameid(uint64_t frameid) {
-        constexpr uint64_t allowed_frameid_gap = 64;
-        static uint64_t max_frameid = allowed_frameid_gap;
-        if (bool result = frameid > max_frameid + allowed_frameid_gap; result) {
-            if (!double_markers)
-                spdlog::warn("Double reflex latency markers detected, disable RTSS!");
-            double_markers = true;
-            return result;
+        constexpr uint64_t high_frameid_threshold = 10000000;
+        static bool low_frameid_encountered = false;
+        if (frameid < high_frameid_threshold) {
+            low_frameid_encountered = true;
+            return false;
         } else {
-            if (frameid > max_frameid) max_frameid = frameid;
-            return result;
+            if (low_frameid_encountered) {
+                if (!double_markers)
+                    spdlog::warn("Double reflex latency markers detected, disable RTSS!");
+                double_markers = true;
+            }
+            // For high frameids return true only if a low number has been seen before
+            return low_frameid_encountered;
         }
     }
 };
