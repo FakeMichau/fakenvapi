@@ -71,6 +71,28 @@ class LowLatency {
         return (counter.QuadPart * UINT64_C(1000000000)) / frequency.QuadPart;
     }
 
+    // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
+    static inline bool microsleep(int64_t ticks, bool full_resolution = false){
+        static HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+        LARGE_INTEGER liDueTime;
+
+        if (full_resolution)
+            liDueTime.QuadPart = -ticks;
+        else
+            liDueTime.QuadPart = -ticks * 10LL;
+
+        if(!hTimer)
+            return false;
+
+        if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0))
+            return false;
+
+        if (WaitForSingleObject(hTimer, INFINITE) != WAIT_OBJECT_0)
+            return false;
+
+        return true;
+    };
+
 public:
     CallSpot call_spot = SimulationStart;
     LFXStats lfx_stats = {};
@@ -144,7 +166,8 @@ public:
                 uint64_t current_time = get_timestamp();
                 uint64_t frame_time = current_time - previous_frame_time;
                 if (frame_time < 1000 * min_interval_us) {
-                    std::this_thread::sleep_for(std::chrono::nanoseconds(1000 * min_interval_us - frame_time));
+                    if(microsleep(min_interval_us - frame_time / 1000))
+                        spdlog::error("Sleep command failed");
                 }
                 previous_frame_time = get_timestamp();
             } else {
@@ -184,7 +207,8 @@ public:
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                std::this_thread::sleep_for(std::chrono::nanoseconds(timestamp - current_timestamp));
+                if (microsleep((timestamp - current_timestamp) / 100, true))
+                    spdlog::error("Sleep command failed");
             } else {
                 timestamp = current_timestamp;
             }
