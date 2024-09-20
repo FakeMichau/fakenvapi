@@ -2,6 +2,7 @@
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION @FILEVERSION@
+ PRODUCTVERSION @FILEVERSION@
  FILETYPE VFT_DLL
 {
   BLOCK "StringFileInfo"
@@ -10,6 +11,7 @@ VS_VERSION_INFO VERSIONINFO
     {
       VALUE "ProductName", "fakenvapi\0"
       VALUE "FileVersion", "@FILEVERSION@\0"
+      VALUE "ProductVersion", "@FILEVERSION@\0"
     }
   }
   BLOCK "VarFileInfo"
