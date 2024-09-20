@@ -72,14 +72,11 @@ class LowLatency {
     }
 
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
-    static inline int microsleep(int64_t ticks, bool full_resolution = false){
+    static inline int timer_sleep(int64_t hundred_ns){
         static HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
         LARGE_INTEGER liDueTime;
 
-        if (full_resolution)
-            liDueTime.QuadPart = -ticks;
-        else
-            liDueTime.QuadPart = -ticks * 10LL;
+        liDueTime.QuadPart = -hundred_ns;
 
         if(!hTimer)
             return 1;
@@ -92,6 +89,30 @@ class LowLatency {
 
         return 0;
     };
+
+    static inline int busywait_sleep(int64_t ns) {
+        auto current_time = get_timestamp();
+        auto wait_until = current_time + ns;
+        while (current_time < wait_until) {
+            current_time = get_timestamp();
+        }
+        return 0;
+    }
+
+    inline int eepy(int64_t ns) {
+        constexpr int64_t busywait_threshold = 2000000;
+        int status {};
+        auto current_time = get_timestamp();
+        if (ns <= busywait_threshold)
+            status = busywait_sleep(ns);
+        else
+            status = timer_sleep((ns - busywait_threshold) / 100);
+
+        if (int64_t sleep_deviation = ns - (get_timestamp() - current_time); sleep_deviation > 0 && !status)
+            status = busywait_sleep(sleep_deviation);
+
+        return status;
+    }
 
 public:
     CallSpot call_spot = SimulationStart;
@@ -166,7 +187,7 @@ public:
                 uint64_t current_time = get_timestamp();
                 uint64_t frame_time = current_time - previous_frame_time;
                 if (frame_time < 1000 * min_interval_us) {
-                    if (auto res = microsleep(min_interval_us - frame_time / 1000); res)
+                    if (auto res = eepy(min_interval_us * 1000 - frame_time); res)
                         spdlog::error("Sleep command failed: {}", res);
                 }
                 previous_frame_time = get_timestamp();
@@ -207,7 +228,7 @@ public:
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
-                if (auto res = microsleep((timestamp - current_timestamp) / 100, true); res)
+                if (auto res = eepy(timestamp - current_timestamp); res)
                     spdlog::error("Sleep command failed: {}", res);
             } else {
                 timestamp = current_timestamp;
