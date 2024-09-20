@@ -293,6 +293,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_SYS_GetDriverAndBranchVersion(NvU32* pDriverVersion, NvAPI_ShortString szBuildBranchString) {
+        *pDriverVersion = 99999;
         tonvss(szBuildBranchString, "buildBranch");
         return Ok();
     }
