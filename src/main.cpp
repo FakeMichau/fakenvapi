@@ -12,6 +12,7 @@
 #endif
 #include "../external/nvapi.h"
 #include "fakenvapi.h"
+#include "../version.h"
 
 #include "log.h"
 
@@ -25,6 +26,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
                 prepareLogging(spdlog::level::info);
         else
             prepareLogging(spdlog::level::off);
+        spdlog::critical("fakenvapi version: {}", FAKENVAPI_VERSION);
         break;
     case DLL_PROCESS_DETACH:
         closeLogging();

@@ -24,6 +24,24 @@ compiler_args = [
 
 spdlog_headers = include_directories('./external/spdlog/include')
 
+windows = import('windows')
+
+rc_file = configure_file(
+  input: 'resource.rc.in',
+  output: 'resource.rc',
+  configuration: {
+    'FILEVERSION': '1.0.0.0',
+  }
+)
+
+rc = windows.compile_resources(rc_file)
+
+fakenvapi_version = vcs_tag(
+    command: ['git', 'describe', '--always', '--tags', '--dirty=-dirty'],
+    input:  'version.h.in',
+    output: 'version.h'
+)
+
 add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')
 
