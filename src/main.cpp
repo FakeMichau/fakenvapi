@@ -1,6 +1,4 @@
-#include <algorithm>
 #include <unordered_map>
-#include <format>
 
 #include <dxgi.h>
 #include <d3d11.h>
@@ -52,8 +50,8 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
 namespace nvd {
     extern "C" {
         NvAPI_Status __cdecl placeholder() {
-            // return Ok();
-            // return Error(NVAPI_NO_IMPLEMENTATION);
+            // return OK();
+            // return ERROR(NVAPI_NO_IMPLEMENTATION);
             return NVAPI_NO_IMPLEMENTATION; // no logging
         }
 

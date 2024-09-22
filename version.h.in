@@ -1,1 +1,2 @@
+#pragma once
 #define FAKENVAPI_VERSION "@VCS_TAG@"

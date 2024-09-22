@@ -1,4 +1,4 @@
-#include <windows.h>
+#include <winver.h>
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION @FILEVERSION@

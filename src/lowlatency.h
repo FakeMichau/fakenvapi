@@ -1,7 +1,5 @@
 #pragma once
 
-#include <chrono>
-
 #include <dxgi.h>
 #if _MSC_VER
 #include <d3d12.h>

@@ -1,9 +1,5 @@
 #pragma once
-#include <algorithm>
-#include <unordered_map>
 #include <unordered_set>
-#include <numeric>
-#include <format>
 
 #include <dxgi.h>
 #if _MSC_VER

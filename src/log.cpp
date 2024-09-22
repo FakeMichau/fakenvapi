@@ -1,22 +1,12 @@
 #include "log.h"
 
-inline std::string extractFunctionName(const std::string& signature) {
-    size_t start = signature.find("nvd::");
-    if (start == std::string::npos) return {};
-    start += 5;
-    size_t end = signature.find('(', start);
-    if (end == std::string::npos) return {};
-
-    return signature.substr(start, end - start);
-}
-
-NvAPI_Status Ok(const std::source_location& location) {
-    spdlog::trace("{}: {}", extractFunctionName(location.function_name()), "OK");
+NvAPI_Status Ok(const char* function_name) {
+    spdlog::trace("{}: {}", function_name, "OK");
     return NVAPI_OK;
 }
 
-NvAPI_Status Error(NvAPI_Status status, const std::source_location& location) {
-    spdlog::trace("{}: {}", extractFunctionName(location.function_name()), fromErrorNr(status));
+NvAPI_Status Error(const char* function_name, NvAPI_Status status) {
+    spdlog::trace("{}: {}", function_name, fromErrorNr(status));
     return status;
 }
 
