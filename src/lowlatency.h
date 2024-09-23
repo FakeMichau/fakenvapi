@@ -279,7 +279,7 @@ public:
     }
 
     bool ignore_frameid(uint64_t frameid) {
-        constexpr uint64_t high_frameid_threshold = 10000000;
+        static constexpr uint64_t high_frameid_threshold = 1000000000;
         static bool low_frameid_encountered = false;
         if (frameid < high_frameid_threshold) {
             low_frameid_encountered = true;
