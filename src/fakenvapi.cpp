@@ -2,36 +2,36 @@
 
 namespace nvd {
     NvAPI_Status __cdecl NvAPI_Initialize() {
-        if (!deviceId) {
-            IDXGIFactory1* pFactory = nullptr;
-            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
+        if (!device_id) {
+            IDXGIFactory1* factory = nullptr;
+            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory))) {
                 spdlog::error("Failed to create DXGI Factory");
                 return ERROR();
             }
 
-            IDXGIAdapter1* pAdapter = nullptr;
-            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
+            IDXGIAdapter1* adapter = nullptr;
+            if (FAILED(factory->EnumAdapters1(0, &adapter))) {
                 spdlog::error("Failed to enumerate adapters");
-                pFactory->Release();
+                factory->Release();
                 return ERROR();
             }
 
-            DXGI_ADAPTER_DESC1 adapterDesc;
-            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
+            DXGI_ADAPTER_DESC1 adapter_desc;
+            if (FAILED(adapter->GetDesc1(&adapter_desc))) {
                 spdlog::error("Failed to get adapter description");
-                pAdapter->Release();
-                pFactory->Release();
+                adapter->Release();
+                factory->Release();
                 return ERROR();
             }
 
-            luid = adapterDesc.AdapterLuid;
-            deviceId = adapterDesc.DeviceId;
-            vendorId = adapterDesc.VendorId;
-            subSysId = adapterDesc.SubSysId;
-            revisionId = adapterDesc.Revision;
+            luid = adapter_desc.AdapterLuid;
+            device_id = adapter_desc.DeviceId;
+            vendor_id = adapter_desc.VendorId;
+            subsystem_id = adapter_desc.SubSysId;
+            revision_id = adapter_desc.Revision;
 
-            pAdapter->Release();
-            pFactory->Release();
+            adapter->Release();
+            factory->Release();
 
             lowlatency_ctx.init_lfx();
         }
@@ -94,17 +94,17 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg) {
-        std::string error = fromErrorNr(status);
+        std::string error = from_error_nr(status);
         spdlog::error("NvAPI_GetErrorMessage gave this error: {}", error);
         tonvss(szMsg, error);
         return OK();
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_CudaEnumComputeCapableGpus(NV_COMPUTE_GPU_TOPOLOGY* pComputeTopo) {
-        auto pComputeTopoV1 = reinterpret_cast<NV_COMPUTE_GPU_TOPOLOGY_V1*>(pComputeTopo);
-        pComputeTopoV1->gpuCount = 1;
-        pComputeTopoV1->computeGpus[0].hPhysicalGpu = nullptr;
-        pComputeTopoV1->computeGpus[0].flags = NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_CAPABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_ENABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_RECOMMENDED;
+        auto compute_topoV1 = reinterpret_cast<NV_COMPUTE_GPU_TOPOLOGY_V1*>(pComputeTopo);
+        compute_topoV1->gpuCount = 1;
+        compute_topoV1->computeGpus[0].hPhysicalGpu = nullptr;
+        compute_topoV1->computeGpus[0].flags = NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_CAPABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_ENABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_RECOMMENDED;
         return OK();
     }
 
@@ -133,10 +133,10 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pDeviceId, NvU32* pSubSystemId, NvU32* pRevisionId, NvU32* pExtDeviceId) {
-        *pDeviceId = (deviceId << 16) | vendorId;
-        *pSubSystemId = subSysId;
-        *pRevisionId = revisionId;
-        *pExtDeviceId = deviceId;
+        *pDeviceId = (device_id << 16) | vendor_id;
+        *pSubSystemId = subsystem_id;
+        *pRevisionId = revision_id;
+        *pExtDeviceId = device_id;
         return OK();
     }
 
@@ -596,7 +596,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session) {
-        *session = drsSession;
+        *session = drs_session;
         return OK();
     }
 
@@ -609,7 +609,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSProfileHandle* profile) {
-        *profile = drsProfile;
+        *profile = drs_profile;
         return OK();
     }
 

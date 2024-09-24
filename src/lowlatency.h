@@ -71,18 +71,18 @@ class LowLatency {
 
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
     static inline int timer_sleep(int64_t hundred_ns){
-        static HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
-        LARGE_INTEGER liDueTime;
+        static HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
+        LARGE_INTEGER due_time;
 
-        liDueTime.QuadPart = -hundred_ns;
+        due_time.QuadPart = -hundred_ns;
 
-        if(!hTimer)
+        if(!timer)
             return 1;
 
-        if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0))
+        if (!SetWaitableTimer(timer, &due_time, 0, NULL, NULL, 0))
             return 2;
 
-        if (WaitForSingleObject(hTimer, INFINITE) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0)
             return 3;
 
         return 0;

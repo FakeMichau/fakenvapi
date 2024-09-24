@@ -6,11 +6,11 @@ NvAPI_Status Ok(const char* function_name) {
 }
 
 NvAPI_Status Error(const char* function_name, NvAPI_Status status) {
-    spdlog::trace("{}: {}", function_name, fromErrorNr(status));
+    spdlog::trace("{}: {}", function_name, from_error_nr(status));
     return status;
 }
 
-void prepareLogging(spdlog::level::level_enum level) {
+void prepare_logging(spdlog::level::level_enum level) {
     try {
         if (level != spdlog::level::off) {
             auto logger = spdlog::basic_logger_mt("basic_logger", "fakenvapi.log", true);
@@ -27,7 +27,7 @@ void prepareLogging(spdlog::level::level_enum level) {
     }
 }
 
-void closeLogging() {
+void close_logging() {
     spdlog::default_logger()->flush();
 	spdlog::shutdown();
 }

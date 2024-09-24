@@ -11,5 +11,5 @@
 
 NvAPI_Status Ok(const char* function_name);
 NvAPI_Status Error(const char* function_name, NvAPI_Status status = NVAPI_ERROR);
-void prepareLogging(spdlog::level::level_enum level);
-void closeLogging();
+void prepare_logging(spdlog::level::level_enum level);
+void close_logging();
