@@ -60,7 +60,7 @@ namespace nvd {
         if (displayId == 0) {
             return OK();
         }
-        return ERROR(NVAPI_END_ENUMERATION);
+        return ERROR_VALUE(NVAPI_END_ENUMERATION);
     }
 
     NvAPI_Status __cdecl NvAPI_GetLogicalGPUFromPhysicalGPU(NvPhysicalGpuHandle physicalHandle, NvLogicalGpuHandle* logicalHandle) {
@@ -152,13 +152,13 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGPU, NV_GPU_CLOCK_FREQUENCIES* pClkFreqs) {
         if (pClkFreqs == nullptr)
-            return ERROR(NVAPI_INVALID_ARGUMENT);
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         if (pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_1 && pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_2 && pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_3)
-            return ERROR(NVAPI_INCOMPATIBLE_STRUCT_VERSION);
+            return ERROR_VALUE(NVAPI_INCOMPATIBLE_STRUCT_VERSION);
 
         if (pClkFreqs->ClockType != static_cast<unsigned int>(NV_GPU_CLOCK_FREQUENCIES_CURRENT_FREQ)) {
-            return ERROR(NVAPI_NOT_SUPPORTED);
+            return ERROR_VALUE(NVAPI_NOT_SUPPORTED);
         }
 
         // Reset all clock data for all domains
@@ -314,7 +314,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetResourceHint() {
-        return ERROR(NVAPI_NO_IMPLEMENTATION);
+        return ERROR_VALUE(NVAPI_NO_IMPLEMENTATION);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams) {
@@ -431,12 +431,12 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_D3D12_GetRaytracingCaps(IUnknown* invalid, NVAPI_D3D12_RAYTRACING_CAPS_TYPE type, void* pData, size_t dataSize) {
         if (pData == nullptr)
-            return ERROR(NVAPI_INVALID_POINTER);
+            return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
         switch (type) {
         case NVAPI_D3D12_RAYTRACING_CAPS_TYPE_THREAD_REORDERING:
             if (dataSize != sizeof(NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS))
-                return ERROR(NVAPI_INVALID_ARGUMENT);
+                return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
             // let's hope that NvAPI_D3D12_IsNvShaderExtnOpCodeSupported returning false is enough to discourage games from attempting to use Shader Execution Reordering
             *(NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS*)pData = NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_NONE;
@@ -444,20 +444,20 @@ namespace nvd {
 
         case NVAPI_D3D12_RAYTRACING_CAPS_TYPE_OPACITY_MICROMAP:
             if (dataSize != sizeof(NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS))
-                return ERROR(NVAPI_INVALID_POINTER);
+                return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
             *(NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS*)pData = NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_NONE;
             break;
 
         case NVAPI_D3D12_RAYTRACING_CAPS_TYPE_DISPLACEMENT_MICROMAP:
             if (dataSize != sizeof(NVAPI_D3D12_RAYTRACING_DISPLACEMENT_MICROMAP_CAPS))
-                return ERROR(NVAPI_INVALID_POINTER);
+                return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
             *(NVAPI_D3D12_RAYTRACING_DISPLACEMENT_MICROMAP_CAPS*)pData = NVAPI_D3D12_RAYTRACING_DISPLACEMENT_MICROMAP_CAP_NONE;
             break;
 
         default:
-            return ERROR(NVAPI_INVALID_POINTER);
+            return ERROR_VALUE(NVAPI_INVALID_POINTER);
         }
 
         return OK();
@@ -533,7 +533,7 @@ namespace nvd {
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc{};
 
         if (!ConvertBuildRaytracingAccelerationStructureInputs(pParams->pDesc, geometryDescs, &desc))
-            return ERROR(NVAPI_INVALID_ARGUMENT);
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&desc, pParams->pInfo);
         return OK();
@@ -549,7 +549,7 @@ namespace nvd {
         };
 
         if (!ConvertBuildRaytracingAccelerationStructureInputs(&pParams->pDesc->inputs, geometryDescs, &desc.Inputs))
-            return ERROR(NVAPI_INVALID_ARGUMENT);
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         pCommandList->BuildRaytracingAccelerationStructure(&desc, pParams->numPostbuildInfoDescs, pParams->pPostbuildInfoDescs);
         static bool logged = false;
@@ -662,9 +662,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
-        if (!call_spot || !target || !latency || !frame_time) return ERROR(NVAPI_INVALID_POINTER);
+        if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
-        if (lowlatency_ctx.get_mode() != LatencyFlex) return ERROR(NVAPI_DATA_NOT_FOUND);
+        if (lowlatency_ctx.get_mode() != LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
         *call_spot = (uint64_t)lowlatency_ctx.call_spot;
 
         *target = lowlatency_ctx.lfx_stats.target;

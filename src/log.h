@@ -7,7 +7,8 @@
 
 #define OK() Ok(__func__)
 #undef ERROR
-#define ERROR(...) Error(__func__, ##__VA_ARGS__)
+#define ERROR() Error(__func__)
+#define ERROR_VALUE(status) Error(__func__, status)
 
 NvAPI_Status Ok(const char* function_name);
 NvAPI_Status Error(const char* function_name, NvAPI_Status status = NVAPI_ERROR);
