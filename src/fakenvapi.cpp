@@ -218,25 +218,8 @@ namespace nvd {
         pPstatesInfo->pstates[0].baseVoltages[0].voltDelta_uV.valueRange.max = 0;
 
         // Fill mock data for P-state 1
+        memcpy(&pPstatesInfo->pstates[1], &pPstatesInfo->pstates[0], sizeof(pPstatesInfo->pstates[0]));
         pPstatesInfo->pstates[1].pstateId = NVAPI_GPU_PERF_PSTATE_P1;
-        pPstatesInfo->pstates[1].bIsEditable = false;
-        pPstatesInfo->pstates[1].clocks[0].domainId = NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS;
-        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.value = 1000; // 1 MHz
-        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.valueRange.min = 800;
-        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.valueRange.max = 1200;
-        pPstatesInfo->pstates[1].clocks[1].domainId = NVAPI_GPU_PUBLIC_CLOCK_MEMORY;
-        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.value = 1000; // 1 MHz
-        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.valueRange.min = 800;
-        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.valueRange.max = 1200;
-        pPstatesInfo->pstates[1].clocks[2].domainId = NVAPI_GPU_PUBLIC_CLOCK_VIDEO;
-        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.value = 1000; // 1 MHz
-        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.valueRange.min = 800;
-        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.valueRange.max = 1200;
-        pPstatesInfo->pstates[1].baseVoltages[0].volt_uV = 1000000; // 1V
-        pPstatesInfo->pstates[1].baseVoltages[0].bIsEditable = false;
-        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.value = 1000;
-        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.valueRange.min = 0;
-        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.valueRange.max = 0;
 
         return OK();
     }
