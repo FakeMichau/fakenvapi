@@ -43,13 +43,14 @@ struct LFXStats {
 
 class LowLatency {
 #if _MSC_VER && _WIN64
-    AMD::AntiLag2DX12::Context context_dx12 = {};
-    AMD::AntiLag2DX11::Context context_dx11 = {};
+    AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
+    AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
     Mode mode = AntiLag2;
 #else
     Mode mode = LatencyFlex;
 #endif
-    lfx::LatencyFleX *lf = nullptr;
+    lfx::LatencyFleX *lfx_ctx = nullptr;
+    std::mutex lfx_mutex;
     unsigned long min_interval_us = 0;
     bool al_available = false;
     bool force_latencyflex = false;
@@ -121,11 +122,11 @@ public:
 
     inline void init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
-        if (mode == AntiLag2 && !context_dx12.m_pAntiLagAPI && !context_dx11.m_pAntiLagAPI) {
+        if (mode == AntiLag2 && !al2_dx12_ctx.m_pAntiLagAPI && !al2_dx11_ctx.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
             if (hr == S_OK) {
-                HRESULT init_return = AMD::AntiLag2DX12::Initialize(&context_dx12, device);
+                HRESULT init_return = AMD::AntiLag2DX12::Initialize(&al2_dx12_ctx, device);
                 if (al_available = init_return == S_OK; !al_available) {
                     mode = LatencyFlex;
                     spdlog::info("AntiLag 2 DX12 initialization failed");
@@ -133,7 +134,7 @@ public:
                     spdlog::info("AntiLag 2 DX12 initialized");
                 }
             } else {
-                HRESULT init_return = AMD::AntiLag2DX11::Initialize(&context_dx11);
+                HRESULT init_return = AMD::AntiLag2DX11::Initialize(&al2_dx11_ctx);
                 if (al_available = init_return == S_OK; !al_available) {
                     mode = LatencyFlex;
                     spdlog::info("AntiLag 2 DX11 initialization failed");
@@ -148,20 +149,10 @@ public:
     }
 
     void init_lfx() {
-        lf = new lfx::LatencyFleX();
+        lfx_ctx = new lfx::LatencyFleX();
         force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
         force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
         spdlog::info("LatencyFleX initialized");
-    }
-
-    void deinit() {
-#if _MSC_VER && _WIN64
-        if (context_dx12.m_pAntiLagAPI)
-            AMD::AntiLag2DX12::DeInitialize(&context_dx12);
-        if (context_dx11.m_pAntiLagAPI)
-            AMD::AntiLag2DX11::DeInitialize(&context_dx11);
-#endif
-        free(lf);
     }
 
     inline HRESULT update() { 
@@ -202,28 +193,29 @@ public:
             } else {
                 max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
             }
-            if (context_dx12.m_pAntiLagAPI)
-                return AMD::AntiLag2DX12::Update(&context_dx12, true, max_fps);
-            else if (context_dx11.m_pAntiLagAPI)
-                return AMD::AntiLag2DX11::Update(&context_dx11, true, max_fps);
+            if (al2_dx12_ctx.m_pAntiLagAPI)
+                return AMD::AntiLag2DX12::Update(&al2_dx12_ctx, true, max_fps);
+            else if (al2_dx11_ctx.m_pAntiLagAPI)
+                return AMD::AntiLag2DX11::Update(&al2_dx11_ctx, true, max_fps);
 #endif
         } else if (mode == LatencyFlex) {
+            lfx_mutex.lock();
             if (lfx_stats.needs_reset) {
                 spdlog::info("LFX Reset");
                 lfx_stats.frame_id = 1;
                 lfx_stats.needs_reset = false;
-                lf->Reset();
+                lfx_ctx->Reset();
             }
             uint64_t current_timestamp = get_timestamp();
             uint64_t timestamp;
 
             // Set FPS Limiter
-            lf->target_frame_time = 1000 * min_interval_us;
+            lfx_ctx->target_frame_time = 1000 * min_interval_us;
 
-            lf->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+            lfx_ctx->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
             spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
             lfx_stats.frame_id++;
-            lfx_stats.target = lf->GetWaitTarget(lfx_stats.frame_id);
+            lfx_stats.target = lfx_ctx->GetWaitTarget(lfx_stats.frame_id);
 
             if (lfx_stats.target > current_timestamp) {
                 static uint64_t timeout_events = 0;
@@ -242,7 +234,8 @@ public:
                 timestamp = current_timestamp;
             }
 
-            lf->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
+            lfx_ctx->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
+            lfx_mutex.unlock();
             return S_OK;
         }
         return S_FALSE;
@@ -251,7 +244,7 @@ public:
     inline HRESULT set_fg_type(bool interpolated) {
 #if _MSC_VER && _WIN64
         if (fg)
-            return AMD::AntiLag2DX12::SetFrameGenFrameType(&context_dx12, interpolated);
+            return AMD::AntiLag2DX12::SetFrameGenFrameType(&al2_dx12_ctx, interpolated);
 #endif
         return S_FALSE;
     }
@@ -259,18 +252,20 @@ public:
     inline HRESULT mark_end_of_rendering() {
 #if _MSC_VER && _WIN64
         if (fg)
-            return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&context_dx12);
+            return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&al2_dx12_ctx);
 #endif
         return S_FALSE;
     }
 
     inline void unload() {
 #if _MSC_VER && _WIN64
-        if (context_dx12.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&context_dx12))
+        if (al2_dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&al2_dx12_ctx))
             spdlog::info("AntiLag 2 DX12 deinitialized");
-        if (context_dx11.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&context_dx11))
+        if (al2_dx11_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&al2_dx11_ctx))
             spdlog::info("AntiLag 2 DX11 deinitialized");
 #endif
+        free(lfx_ctx);
+        spdlog::info("LatencyFlex deinitialized");
     }
 
     void set_min_interval_us(unsigned long interval_us) {

@@ -28,7 +28,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
         break;
     case DLL_PROCESS_DETACH:
         close_logging();
-        nvd::lowlatency_ctx.deinit();
+        nvd::lowlatency_ctx.unload();
         break;
     }
     return TRUE;
