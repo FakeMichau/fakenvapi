@@ -2,36 +2,36 @@
 
 namespace nvd {
     NvAPI_Status __cdecl NvAPI_Initialize() {
-        if (!deviceId) {
-            IDXGIFactory1* pFactory = nullptr;
-            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pFactory))) {
+        if (!device_id) {
+            IDXGIFactory1* factory = nullptr;
+            if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory))) {
                 spdlog::error("Failed to create DXGI Factory");
                 return ERROR();
             }
 
-            IDXGIAdapter1* pAdapter = nullptr;
-            if (FAILED(pFactory->EnumAdapters1(0, &pAdapter))) {
+            IDXGIAdapter1* adapter = nullptr;
+            if (FAILED(factory->EnumAdapters1(0, &adapter))) {
                 spdlog::error("Failed to enumerate adapters");
-                pFactory->Release();
+                factory->Release();
                 return ERROR();
             }
 
-            DXGI_ADAPTER_DESC1 adapterDesc;
-            if (FAILED(pAdapter->GetDesc1(&adapterDesc))) {
+            DXGI_ADAPTER_DESC1 adapter_desc;
+            if (FAILED(adapter->GetDesc1(&adapter_desc))) {
                 spdlog::error("Failed to get adapter description");
-                pAdapter->Release();
-                pFactory->Release();
+                adapter->Release();
+                factory->Release();
                 return ERROR();
             }
 
-            luid = adapterDesc.AdapterLuid;
-            deviceId = adapterDesc.DeviceId;
-            vendorId = adapterDesc.VendorId;
-            subSysId = adapterDesc.SubSysId;
-            revisionId = adapterDesc.Revision;
+            luid = adapter_desc.AdapterLuid;
+            device_id = adapter_desc.DeviceId;
+            vendor_id = adapter_desc.VendorId;
+            subsystem_id = adapter_desc.SubSysId;
+            revision_id = adapter_desc.Revision;
 
-            pAdapter->Release();
-            pFactory->Release();
+            adapter->Release();
+            factory->Release();
 
             lowlatency_ctx.init_lfx();
         }
@@ -60,7 +60,7 @@ namespace nvd {
         if (displayId == 0) {
             return OK();
         }
-        return ERROR(NVAPI_END_ENUMERATION);
+        return ERROR_VALUE(NVAPI_END_ENUMERATION);
     }
 
     NvAPI_Status __cdecl NvAPI_GetLogicalGPUFromPhysicalGPU(NvPhysicalGpuHandle physicalHandle, NvLogicalGpuHandle* logicalHandle) {
@@ -94,17 +94,17 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GetErrorMessage(NvAPI_Status status, NvAPI_ShortString szMsg) {
-        std::string error = fromErrorNr(status);
+        std::string error = from_error_nr(status);
         spdlog::error("NvAPI_GetErrorMessage gave this error: {}", error);
         tonvss(szMsg, error);
         return OK();
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_CudaEnumComputeCapableGpus(NV_COMPUTE_GPU_TOPOLOGY* pComputeTopo) {
-        auto pComputeTopoV1 = reinterpret_cast<NV_COMPUTE_GPU_TOPOLOGY_V1*>(pComputeTopo);
-        pComputeTopoV1->gpuCount = 1;
-        pComputeTopoV1->computeGpus[0].hPhysicalGpu = nullptr;
-        pComputeTopoV1->computeGpus[0].flags = NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_CAPABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_ENABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_RECOMMENDED;
+        auto compute_topoV1 = reinterpret_cast<NV_COMPUTE_GPU_TOPOLOGY_V1*>(pComputeTopo);
+        compute_topoV1->gpuCount = 1;
+        compute_topoV1->computeGpus[0].hPhysicalGpu = nullptr;
+        compute_topoV1->computeGpus[0].flags = NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_CAPABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_ENABLE | NV_COMPUTE_GPU_TOPOLOGY_PHYSICS_RECOMMENDED;
         return OK();
     }
 
@@ -133,10 +133,10 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pDeviceId, NvU32* pSubSystemId, NvU32* pRevisionId, NvU32* pExtDeviceId) {
-        *pDeviceId = (deviceId << 16) | vendorId;
-        *pSubSystemId = subSysId;
-        *pRevisionId = revisionId;
-        *pExtDeviceId = deviceId;
+        *pDeviceId = (device_id << 16) | vendor_id;
+        *pSubSystemId = subsystem_id;
+        *pRevisionId = revision_id;
+        *pExtDeviceId = device_id;
         return OK();
     }
 
@@ -152,13 +152,13 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_GPU_GetAllClockFrequencies(NvPhysicalGpuHandle hPhysicalGPU, NV_GPU_CLOCK_FREQUENCIES* pClkFreqs) {
         if (pClkFreqs == nullptr)
-            return ERROR(NVAPI_INVALID_ARGUMENT);
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         if (pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_1 && pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_2 && pClkFreqs->version != NV_GPU_CLOCK_FREQUENCIES_VER_3)
-            return ERROR(NVAPI_INCOMPATIBLE_STRUCT_VERSION);
+            return ERROR_VALUE(NVAPI_INCOMPATIBLE_STRUCT_VERSION);
 
         if (pClkFreqs->ClockType != static_cast<unsigned int>(NV_GPU_CLOCK_FREQUENCIES_CURRENT_FREQ)) {
-            return ERROR(NVAPI_NOT_SUPPORTED);
+            return ERROR_VALUE(NVAPI_NOT_SUPPORTED);
         }
 
         // Reset all clock data for all domains
@@ -218,25 +218,8 @@ namespace nvd {
         pPstatesInfo->pstates[0].baseVoltages[0].voltDelta_uV.valueRange.max = 0;
 
         // Fill mock data for P-state 1
+        memcpy(&pPstatesInfo->pstates[1], &pPstatesInfo->pstates[0], sizeof(pPstatesInfo->pstates[0]));
         pPstatesInfo->pstates[1].pstateId = NVAPI_GPU_PERF_PSTATE_P1;
-        pPstatesInfo->pstates[1].bIsEditable = false;
-        pPstatesInfo->pstates[1].clocks[0].domainId = NVAPI_GPU_PUBLIC_CLOCK_GRAPHICS;
-        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.value = 1000; // 1 MHz
-        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.valueRange.min = 800;
-        pPstatesInfo->pstates[1].clocks[0].freqDelta_kHz.valueRange.max = 1200;
-        pPstatesInfo->pstates[1].clocks[1].domainId = NVAPI_GPU_PUBLIC_CLOCK_MEMORY;
-        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.value = 1000; // 1 MHz
-        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.valueRange.min = 800;
-        pPstatesInfo->pstates[1].clocks[1].freqDelta_kHz.valueRange.max = 1200;
-        pPstatesInfo->pstates[1].clocks[2].domainId = NVAPI_GPU_PUBLIC_CLOCK_VIDEO;
-        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.value = 1000; // 1 MHz
-        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.valueRange.min = 800;
-        pPstatesInfo->pstates[1].clocks[2].freqDelta_kHz.valueRange.max = 1200;
-        pPstatesInfo->pstates[1].baseVoltages[0].volt_uV = 1000000; // 1V
-        pPstatesInfo->pstates[1].baseVoltages[0].bIsEditable = false;
-        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.value = 1000;
-        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.valueRange.min = 0;
-        pPstatesInfo->pstates[1].baseVoltages[0].voltDelta_uV.valueRange.max = 0;
 
         return OK();
     }
@@ -314,7 +297,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetResourceHint() {
-        return ERROR(NVAPI_NO_IMPLEMENTATION);
+        return ERROR_VALUE(NVAPI_NO_IMPLEMENTATION);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams) {
@@ -431,12 +414,12 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_D3D12_GetRaytracingCaps(IUnknown* invalid, NVAPI_D3D12_RAYTRACING_CAPS_TYPE type, void* pData, size_t dataSize) {
         if (pData == nullptr)
-            return ERROR(NVAPI_INVALID_POINTER);
+            return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
         switch (type) {
         case NVAPI_D3D12_RAYTRACING_CAPS_TYPE_THREAD_REORDERING:
             if (dataSize != sizeof(NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS))
-                return ERROR(NVAPI_INVALID_ARGUMENT);
+                return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
             // let's hope that NvAPI_D3D12_IsNvShaderExtnOpCodeSupported returning false is enough to discourage games from attempting to use Shader Execution Reordering
             *(NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS*)pData = NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_NONE;
@@ -444,20 +427,20 @@ namespace nvd {
 
         case NVAPI_D3D12_RAYTRACING_CAPS_TYPE_OPACITY_MICROMAP:
             if (dataSize != sizeof(NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS))
-                return ERROR(NVAPI_INVALID_POINTER);
+                return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
             *(NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS*)pData = NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_NONE;
             break;
 
         case NVAPI_D3D12_RAYTRACING_CAPS_TYPE_DISPLACEMENT_MICROMAP:
             if (dataSize != sizeof(NVAPI_D3D12_RAYTRACING_DISPLACEMENT_MICROMAP_CAPS))
-                return ERROR(NVAPI_INVALID_POINTER);
+                return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
             *(NVAPI_D3D12_RAYTRACING_DISPLACEMENT_MICROMAP_CAPS*)pData = NVAPI_D3D12_RAYTRACING_DISPLACEMENT_MICROMAP_CAP_NONE;
             break;
 
         default:
-            return ERROR(NVAPI_INVALID_POINTER);
+            return ERROR_VALUE(NVAPI_INVALID_POINTER);
         }
 
         return OK();
@@ -533,7 +516,7 @@ namespace nvd {
         D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc{};
 
         if (!ConvertBuildRaytracingAccelerationStructureInputs(pParams->pDesc, geometryDescs, &desc))
-            return ERROR(NVAPI_INVALID_ARGUMENT);
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&desc, pParams->pInfo);
         return OK();
@@ -549,7 +532,7 @@ namespace nvd {
         };
 
         if (!ConvertBuildRaytracingAccelerationStructureInputs(&pParams->pDesc->inputs, geometryDescs, &desc.Inputs))
-            return ERROR(NVAPI_INVALID_ARGUMENT);
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         pCommandList->BuildRaytracingAccelerationStructure(&desc, pParams->numPostbuildInfoDescs, pParams->pPostbuildInfoDescs);
         static bool logged = false;
@@ -596,7 +579,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session) {
-        *session = drsSession;
+        *session = drs_session;
         return OK();
     }
 
@@ -609,7 +592,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_DRS_GetBaseProfile(NvDRSSessionHandle session, NvDRSProfileHandle* profile) {
-        *profile = drsProfile;
+        *profile = drs_profile;
         return OK();
     }
 
@@ -662,9 +645,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
-        if (!call_spot || !target || !latency || !frame_time) return ERROR(NVAPI_INVALID_POINTER);
+        if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
-        if (lowlatency_ctx.get_mode() != LatencyFlex) return ERROR(NVAPI_DATA_NOT_FOUND);
+        if (lowlatency_ctx.get_mode() != LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
         *call_spot = (uint64_t)lowlatency_ctx.call_spot;
 
         *target = lowlatency_ctx.lfx_stats.target;

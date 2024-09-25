@@ -71,18 +71,18 @@ class LowLatency {
 
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
     static inline int timer_sleep(int64_t hundred_ns){
-        static HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
-        LARGE_INTEGER liDueTime;
+        static HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
+        LARGE_INTEGER due_time;
 
-        liDueTime.QuadPart = -hundred_ns;
+        due_time.QuadPart = -hundred_ns;
 
-        if(!hTimer)
+        if(!timer)
             return 1;
 
-        if (!SetWaitableTimer(hTimer, &liDueTime, 0, NULL, NULL, 0))
+        if (!SetWaitableTimer(timer, &due_time, 0, NULL, NULL, 0))
             return 2;
 
-        if (WaitForSingleObject(hTimer, INFINITE) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0)
             return 3;
 
         return 0;
@@ -152,6 +152,16 @@ public:
         force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
         force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
         spdlog::info("LatencyFleX initialized");
+    }
+
+    void deinit() {
+#if _MSC_VER && _WIN64
+        if (context_dx12.m_pAntiLagAPI)
+            AMD::AntiLag2DX12::DeInitialize(&context_dx12);
+        if (context_dx11.m_pAntiLagAPI)
+            AMD::AntiLag2DX11::DeInitialize(&context_dx11);
+#endif
+        free(lf);
     }
 
     inline HRESULT update() { 

@@ -16,14 +16,14 @@
 
 namespace nvd {
     static auto drs = 1U;
-    static auto drsSession = reinterpret_cast<NvDRSSessionHandle>(&drs);
-    static auto drsProfile = reinterpret_cast<NvDRSProfileHandle>(&drs);
+    static auto drs_session = reinterpret_cast<NvDRSSessionHandle>(&drs);
+    static auto drs_profile = reinterpret_cast<NvDRSProfileHandle>(&drs);
 
     static LUID luid = {};
-    static UINT deviceId = {};
-    static UINT vendorId = {};
-    static UINT subSysId = {};
-    static UINT revisionId = {};
+    static UINT device_id = {};
+    static UINT vendor_id = {};
+    static UINT subsystem_id = {};
+    static UINT revision_id = {};
 
     static LowLatency lowlatency_ctx;
 

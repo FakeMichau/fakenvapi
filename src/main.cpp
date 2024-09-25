@@ -19,15 +19,16 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     case DLL_PROCESS_ATTACH:
         if (get_config(L"fakenvapi", L"enable_logs", true))
             if (get_config(L"fakenvapi", L"enable_trace_logs", false))
-                prepareLogging(spdlog::level::trace);
+                prepare_logging(spdlog::level::trace);
             else
-                prepareLogging(spdlog::level::info);
+                prepare_logging(spdlog::level::info);
         else
-            prepareLogging(spdlog::level::off);
+            prepare_logging(spdlog::level::off);
         spdlog::critical("fakenvapi version: {}", FAKENVAPI_VERSION);
         break;
     case DLL_PROCESS_DETACH:
-        closeLogging();
+        close_logging();
+        nvd::lowlatency_ctx.deinit();
         break;
     }
     return TRUE;

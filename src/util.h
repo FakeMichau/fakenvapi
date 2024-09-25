@@ -2,6 +2,7 @@
 #include "../external/nvapi.h"
 #include <string>
 #include <map>
+#include <cstdint>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -13,7 +14,7 @@ int get_config(const wchar_t* section, const wchar_t* key, int default_value);
         return registry.insert({id, (void *)method}).first->second;
 
 // function taken from jp7677's dxvk-nvapi project licensed under MIT
-inline std::string fromErrorNr(const int16_t errorNr) {
+inline std::string from_error_nr(const int16_t error_nr) {
     static const std::map<int16_t, std::string> errors{
         {-1, "NVAPI_ERROR"},
         {-2, "NVAPI_LIBRARY_NOT_FOUND"},
@@ -156,6 +157,6 @@ inline std::string fromErrorNr(const int16_t errorNr) {
         {-223, "NVAPI_REQUIRE_FURTHER_HDCP_ACTION"},
         {-224, "NVAPI_DISPLAY_MUX_TRANSITION_FAILED"} };
 
-    auto it = errors.find(errorNr);
+    auto it = errors.find(error_nr);
     return it != errors.end() ? it->second : "UNKNOWN_ERROR";
 }

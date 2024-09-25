@@ -6,11 +6,11 @@ void tonvss(NvAPI_ShortString nvss, std::string str) {
 }
 
 static void get_ini_path(wchar_t* path) {
-    HMODULE hModule = GetModuleHandle(NULL);
-    GetModuleFileNameW(hModule, path, MAX_PATH);
-    wchar_t* lastSlash = wcsrchr(path, L'\\');
-    if (lastSlash != nullptr) {
-        *lastSlash = L'\0'; 
+    HMODULE module = GetModuleHandle(NULL);
+    GetModuleFileNameW(module, path, MAX_PATH);
+    wchar_t* last_slash = wcsrchr(path, L'\\');
+    if (last_slash != nullptr) {
+        *last_slash = L'\0'; 
     }
     wcscat(path, L"\\fakenvapi.ini");
 }
