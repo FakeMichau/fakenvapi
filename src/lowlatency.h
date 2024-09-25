@@ -212,8 +212,6 @@ public:
             // Set FPS Limiter
             lfx_ctx->target_frame_time = 1000 * min_interval_us;
 
-            lfx_ctx->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
-            spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
             lfx_stats.frame_id++;
             lfx_stats.target = lfx_ctx->GetWaitTarget(lfx_stats.frame_id);
 
@@ -255,6 +253,14 @@ public:
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&al2_dx12_ctx);
 #endif
         return S_FALSE;
+    }
+
+    inline void lfx_end_frame() {
+        lfx_mutex.lock();
+        auto current_timestamp = get_timestamp();
+        lfx_ctx->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+        spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
+        lfx_mutex.unlock();
     }
 
     inline void unload() {
