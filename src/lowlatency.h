@@ -154,6 +154,16 @@ public:
         spdlog::info("LatencyFleX initialized");
     }
 
+    void deinit() {
+#if _MSC_VER && _WIN64
+        if (context_dx12.m_pAntiLagAPI)
+            AMD::AntiLag2DX12::DeInitialize(&context_dx12);
+        if (context_dx11.m_pAntiLagAPI)
+            AMD::AntiLag2DX11::DeInitialize(&context_dx11);
+#endif
+        free(lf);
+    }
+
     inline HRESULT update() { 
         if (force_reflex == ForceDisable || (force_reflex == InGame && !active)) return S_FALSE;
 
