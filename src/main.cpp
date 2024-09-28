@@ -27,8 +27,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
         spdlog::critical("fakenvapi version: {}", FAKENVAPI_VERSION);
         break;
     case DLL_PROCESS_DETACH:
-        close_logging();
         nvd::lowlatency_ctx.unload();
+        close_logging();
         break;
     }
     return TRUE;
