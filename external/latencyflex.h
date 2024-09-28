@@ -15,12 +15,15 @@
 #ifndef LATENCYFLEX_H
 #define LATENCYFLEX_H
 
+// #include "log.h"
+
 #ifdef LATENCYFLEX_HAVE_PERFETTO
 #include <perfetto.h>
 PERFETTO_DEFINE_CATEGORIES(
     perfetto::Category("latencyflex").SetDescription("LatencyFleX latency and throughput metrics"));
 #else
 #define TRACE_COUNTER(...)
+// #define TRACE_COUNTER(a, b, c) spdlog::trace("{}: {}", b, c)
 #define TRACE_EVENT_BEGIN(...)
 #define TRACE_EVENT_END(...)
 #endif
@@ -190,6 +193,7 @@ public:
     TRACE_EVENT_BEGIN("latencyflex", "frame",
                       perfetto::Track(track_base_ + frame_id % kMaxInflightFrames), timestamp);
     frame_begin_ids_[frame_id % kMaxInflightFrames] = frame_id;
+    TRACE_COUNTER("latencyflex", "frame_id_begin", frame_id);
     frame_begin_ts_[frame_id % kMaxInflightFrames] = timestamp;
     prev_frame_begin_id_ = frame_id;
     if (target != 0) {
@@ -215,6 +219,7 @@ public:
     size_t phase = frame_id % kNumPhases;
     int64_t latency_val = -1;
     int64_t frame_time_val = -1;
+    TRACE_COUNTER("latencyflex", "frame_id_end", frame_id);
     if (frame_begin_ids_[frame_id % kMaxInflightFrames] == frame_id) {
       frame_begin_ids_[frame_id % kMaxInflightFrames] = UINT64_MAX;
 

@@ -171,7 +171,10 @@ public:
             if (mode == LatencyFlex)
                 lfx_stats.needs_reset = true;
         }
-        if (previous_fg_status != fg) spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
+        if (previous_fg_status != fg) {
+            spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
+            lfx_stats.needs_reset = true;
+        }
         previous_fg_status = fg;
 
         spdlog::debug("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
@@ -199,7 +202,6 @@ public:
                 return AMD::AntiLag2DX11::Update(&al2_dx11_ctx, true, max_fps);
 #endif
         } else if (mode == LatencyFlex) {
-            lfx_mutex.lock();
             if (lfx_stats.needs_reset) {
                 spdlog::info("LFX Reset");
                 lfx_stats.frame_id = 1;
@@ -212,8 +214,9 @@ public:
             // Set FPS Limiter
             lfx_ctx->target_frame_time = 1000 * min_interval_us;
 
-            lfx_stats.frame_id++;
-            lfx_stats.target = lfx_ctx->GetWaitTarget(lfx_stats.frame_id);
+            lfx_mutex.lock();
+            lfx_stats.target = lfx_ctx->GetWaitTarget(lfx_stats.frame_id + 1);
+            lfx_mutex.unlock();
 
             if (lfx_stats.target > current_timestamp) {
                 static uint64_t timeout_events = 0;
@@ -232,8 +235,11 @@ public:
                 timestamp = current_timestamp;
             }
 
+            lfx_mutex.lock();
+            lfx_stats.frame_id++;
             lfx_ctx->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
             lfx_mutex.unlock();
+            
             return S_OK;
         }
         return S_FALSE;
@@ -256,11 +262,13 @@ public:
     }
 
     inline void lfx_end_frame() {
-        lfx_mutex.lock();
-        auto current_timestamp = get_timestamp();
-        lfx_ctx->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
-        spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
-        lfx_mutex.unlock();
+        if (mode == LatencyFlex) {
+            auto current_timestamp = get_timestamp();
+            lfx_mutex.lock();
+            lfx_ctx->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+            lfx_mutex.unlock();
+            spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
+        }
     }
 
     inline void unload() {
