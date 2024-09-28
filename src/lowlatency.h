@@ -58,16 +58,12 @@ class LowLatency {
     ForceReflex force_reflex = InGame;
 
     static inline uint64_t get_timestamp() {
-        static LARGE_INTEGER frequency = []{
-            LARGE_INTEGER freq;
-            QueryPerformanceFrequency(&freq);
-            return freq;
-        }();
+        FILETIME fileTime;
+        GetSystemTimePreciseAsFileTime(&fileTime);
 
-        LARGE_INTEGER counter;
-        QueryPerformanceCounter(&counter);
-        
-        return (counter.QuadPart * UINT64_C(1000000000)) / frequency.QuadPart;
+        uint64_t time = (static_cast<uint64_t>(fileTime.dwHighDateTime) << 32) | fileTime.dwLowDateTime;
+
+        return time * 100;
     }
 
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
