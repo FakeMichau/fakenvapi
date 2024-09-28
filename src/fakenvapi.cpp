@@ -354,7 +354,7 @@ namespace nvd {
             lowlatency_ctx.mark_end_of_rendering();
             break;
         case RENDERSUBMIT_END:
-            lowlatency_ctx.lfx_end_frame();
+            if (lowlatency_ctx.aggressive_lfx) lowlatency_ctx.lfx_end_frame();
             break;
         }
         return OK();

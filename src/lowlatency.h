@@ -119,6 +119,7 @@ public:
     uint64_t calls_without_sleep = 0;
     bool fg = false;
     bool active = true;
+    bool aggressive_lfx = false;
 
     inline void init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
@@ -152,6 +153,7 @@ public:
         lfx_ctx = new lfx::LatencyFleX();
         force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
         force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
+        aggressive_lfx = get_config(L"fakenvapi", L"aggressive_latencyflex", false);
         spdlog::info("LatencyFleX initialized");
     }
 
@@ -213,6 +215,8 @@ public:
 
             // Set FPS Limiter
             lfx_ctx->target_frame_time = 1000 * min_interval_us;
+
+            if (!aggressive_lfx) lfx_end_frame();
 
             lfx_mutex.lock();
             lfx_stats.target = lfx_ctx->GetWaitTarget(lfx_stats.frame_id + 1);
