@@ -1,5 +1,7 @@
 build/
+testing/
 useful/
 .vscode/
 .vs/
 build_testing.bat
+testing.sh

@@ -33,6 +33,12 @@ enum ForceReflex {
     ForceEnable
 };
 
+enum LFXMode {
+    Conservative,
+    Aggressive,
+    ReflexIDs
+};
+
 struct LFXStats {
     uint64_t latency = 0;
     uint64_t frame_time = 1;
@@ -56,6 +62,7 @@ class LowLatency {
     bool force_latencyflex = false;
     bool double_markers = false;
     ForceReflex force_reflex = InGame;
+    LFXMode lfx_mode = {};
 
     static inline uint64_t get_timestamp() {
         FILETIME fileTime;
@@ -115,7 +122,6 @@ public:
     uint64_t calls_without_sleep = 0;
     bool fg = false;
     bool active = true;
-    bool aggressive_lfx = false;
 
     inline void init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
@@ -149,11 +155,11 @@ public:
         lfx_ctx = new lfx::LatencyFleX();
         force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
         force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
-        aggressive_lfx = get_config(L"fakenvapi", L"aggressive_latencyflex", false);
+        lfx_mode = (LFXMode)get_config(L"fakenvapi", L"latencyflex_mode", 0);
         spdlog::info("LatencyFleX initialized");
     }
 
-    inline HRESULT update() { 
+    inline HRESULT update(uint64_t reflex_frame_id) { 
         if (force_reflex == ForceDisable || (force_reflex == InGame && !active)) return S_FALSE;
 
         Mode previous_mode = mode;
@@ -212,10 +218,11 @@ public:
             // Set FPS Limiter
             lfx_ctx->target_frame_time = 1000 * min_interval_us;
 
-            if (!aggressive_lfx) lfx_end_frame();
+            if (lfx_mode == Conservative) lfx_end_frame(0); // it should not be using this frame id in the conservative mode
 
             lfx_mutex.lock();
-            lfx_stats.target = lfx_ctx->GetWaitTarget(lfx_stats.frame_id + 1);
+            auto frame_id = lfx_mode == ReflexIDs ? reflex_frame_id : lfx_stats.frame_id + 1;
+            lfx_stats.target = lfx_ctx->GetWaitTarget(frame_id);
             lfx_mutex.unlock();
 
             if (lfx_stats.target > current_timestamp) {
@@ -237,7 +244,7 @@ public:
 
             lfx_mutex.lock();
             lfx_stats.frame_id++;
-            lfx_ctx->BeginFrame(lfx_stats.frame_id, lfx_stats.target, timestamp);
+            lfx_ctx->BeginFrame(frame_id, lfx_stats.target, timestamp);
             lfx_mutex.unlock();
             
             return S_OK;
@@ -261,11 +268,12 @@ public:
         return S_FALSE;
     }
 
-    inline void lfx_end_frame() {
+    inline void lfx_end_frame(uint64_t reflex_frame_id) {
         if (mode == LatencyFlex) {
             auto current_timestamp = get_timestamp();
             lfx_mutex.lock();
-            lfx_ctx->EndFrame(lfx_stats.frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+            auto frame_id = lfx_mode == ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
+            lfx_ctx->EndFrame(frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
             lfx_mutex.unlock();
             spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
         }
@@ -287,6 +295,10 @@ public:
             min_interval_us = interval_us;
             spdlog::info("Changed max fps: {}", interval_us > 0 ? 1000000 / interval_us : 0);
         }
+    }
+
+    LFXMode get_lfx_mode() {
+        return lfx_mode;
     }
 
     Mode get_mode() {

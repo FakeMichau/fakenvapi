@@ -343,18 +343,18 @@ namespace nvd {
                     lowlatency_ctx.call_spot = SimulationStart;
             }
             if (lowlatency_ctx.call_spot != SimulationStart) break;
-            spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update());
+            spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
             break;
         case INPUT_SAMPLE:
             if (lowlatency_ctx.call_spot == SleepCall) break;
             lowlatency_ctx.call_spot = InputSample;
-            spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update());
+            spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
             break;
         case PRESENT_START:
             lowlatency_ctx.mark_end_of_rendering();
             break;
         case RENDERSUBMIT_END:
-            if (lowlatency_ctx.aggressive_lfx) lowlatency_ctx.lfx_end_frame();
+            if (lowlatency_ctx.get_lfx_mode() != Conservative) lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
             break;
         }
         return OK();
@@ -363,6 +363,9 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
         if (!pDevice)
             return ERROR();
+
+        if (lowlatency_ctx.get_mode() == LatencyFlex && lowlatency_ctx.get_lfx_mode() == ReflexIDs)
+            return OK();
 
         // HACK for RTSS injecting markers and sleep even when a game sends them already
         // TODO: option to reset the accepted_thread_id?
@@ -375,7 +378,7 @@ namespace nvd {
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = SleepCall;
         lowlatency_ctx.calls_without_sleep = 0;
-        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update());
+        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update(0));
         return OK();
     }
 
