@@ -51,7 +51,7 @@ class LowLatency {
 #if _MSC_VER && _WIN64
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
     AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
-    Mode mode = AntiLag2;
+    Mode mode = Mode::AntiLag2;
 #else
     Mode mode = Mode::LatencyFlex;
 #endif
@@ -125,13 +125,13 @@ public:
 
     inline void init_al2(IUnknown *pDevice) {
 #if _MSC_VER && _WIN64
-        if (mode == AntiLag2 && !al2_dx12_ctx.m_pAntiLagAPI && !al2_dx11_ctx.m_pAntiLagAPI) {
+        if (mode == Mode::AntiLag2 && !al2_dx12_ctx.m_pAntiLagAPI && !al2_dx11_ctx.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
             if (hr == S_OK) {
                 HRESULT init_return = AMD::AntiLag2DX12::Initialize(&al2_dx12_ctx, device);
                 if (al_available = init_return == S_OK; !al_available) {
-                    mode = LatencyFlex;
+                    mode = Mode::LatencyFlex;
                     spdlog::info("AntiLag 2 DX12 initialization failed");
                 } else {
                     spdlog::info("AntiLag 2 DX12 initialized");
@@ -139,7 +139,7 @@ public:
             } else {
                 HRESULT init_return = AMD::AntiLag2DX11::Initialize(&al2_dx11_ctx);
                 if (al_available = init_return == S_OK; !al_available) {
-                    mode = LatencyFlex;
+                    mode = Mode::LatencyFlex;
                     spdlog::info("AntiLag 2 DX11 initialization failed");
                 } else {
                     spdlog::info("AntiLag 2 DX11 initialized");
