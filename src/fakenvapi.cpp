@@ -337,24 +337,24 @@ namespace nvd {
         lowlatency_ctx.init_al2(pDev);
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
-            if (lowlatency_ctx.call_spot == SleepCall) {
+            if (lowlatency_ctx.call_spot == CallSpot::SleepCall) {
                 lowlatency_ctx.calls_without_sleep++;
                 if (lowlatency_ctx.calls_without_sleep > 10)
-                    lowlatency_ctx.call_spot = SimulationStart;
+                    lowlatency_ctx.call_spot = CallSpot::SimulationStart;
             }
-            if (lowlatency_ctx.call_spot != SimulationStart) break;
+            if (lowlatency_ctx.call_spot != CallSpot::SimulationStart) break;
             spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
             break;
         case INPUT_SAMPLE:
-            if (lowlatency_ctx.call_spot == SleepCall) break;
-            lowlatency_ctx.call_spot = InputSample;
+            if (lowlatency_ctx.call_spot == CallSpot::SleepCall) break;
+            lowlatency_ctx.call_spot = CallSpot::InputSample;
             spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
             break;
         case PRESENT_START:
             lowlatency_ctx.mark_end_of_rendering();
             break;
         case RENDERSUBMIT_END:
-            if (lowlatency_ctx.get_lfx_mode() != Conservative) lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
+            if (lowlatency_ctx.get_lfx_mode() != LFXMode::Conservative) lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
             break;
         }
         return OK();
@@ -364,7 +364,7 @@ namespace nvd {
         if (!pDevice)
             return ERROR();
 
-        if (lowlatency_ctx.get_mode() == LatencyFlex && lowlatency_ctx.get_lfx_mode() == ReflexIDs)
+        if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.get_lfx_mode() == LFXMode::ReflexIDs)
             return OK();
 
         // HACK for RTSS injecting markers and sleep even when a game sends them already
@@ -376,7 +376,7 @@ namespace nvd {
             return NVAPI_OK; // skip that thread
 
         lowlatency_ctx.init_al2(pDevice);
-        lowlatency_ctx.call_spot = SleepCall;
+        lowlatency_ctx.call_spot = CallSpot::SleepCall;
         lowlatency_ctx.calls_without_sleep = 0;
         spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update(0));
         return OK();
@@ -653,7 +653,7 @@ namespace nvd {
     NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
         if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
-        if (lowlatency_ctx.get_mode() != LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
+        if (lowlatency_ctx.get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
         *call_spot = (uint64_t)lowlatency_ctx.call_spot;
 
         *target = lowlatency_ctx.lfx_stats.target;

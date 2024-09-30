@@ -16,24 +16,24 @@
 
 #include "log.h"
 
-enum Mode {
+enum class Mode {
     AntiLag2,
     LatencyFlex,
 };
 
-enum CallSpot {
+enum class CallSpot {
     SleepCall = 0,
     InputSample = 1,
     SimulationStart = 2
 };
 
-enum ForceReflex {
+enum class ForceReflex {
     InGame,
     ForceDisable,
     ForceEnable
 };
 
-enum LFXMode {
+enum class LFXMode {
     Conservative,
     Aggressive,
     ReflexIDs
@@ -53,7 +53,7 @@ class LowLatency {
     AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
     Mode mode = AntiLag2;
 #else
-    Mode mode = LatencyFlex;
+    Mode mode = Mode::LatencyFlex;
 #endif
     lfx::LatencyFleX *lfx_ctx = nullptr;
     std::mutex lfx_mutex;
@@ -61,7 +61,7 @@ class LowLatency {
     bool al_available = false;
     bool force_latencyflex = false;
     bool double_markers = false;
-    ForceReflex force_reflex = InGame;
+    ForceReflex force_reflex = ForceReflex::InGame;
     LFXMode lfx_mode = {};
 
     static inline uint64_t get_timestamp() {
@@ -117,7 +117,7 @@ class LowLatency {
     }
 
 public:
-    CallSpot call_spot = SimulationStart;
+    CallSpot call_spot = CallSpot::SimulationStart;
     LFXStats lfx_stats = {};
     uint64_t calls_without_sleep = 0;
     bool fg = false;
@@ -160,19 +160,19 @@ public:
     }
 
     inline HRESULT update(uint64_t reflex_frame_id) { 
-        if (force_reflex == ForceDisable || (force_reflex == InGame && !active)) return S_FALSE;
+        if (force_reflex == ForceReflex::ForceDisable || (force_reflex == ForceReflex::InGame && !active)) return S_FALSE;
 
         Mode previous_mode = mode;
         static bool previous_fg_status = fg;
 
         if (al_available && !force_latencyflex) 
-            mode = AntiLag2;
+            mode = Mode::AntiLag2;
         else 
-            mode = LatencyFlex;
+            mode = Mode::LatencyFlex;
 
         if (previous_mode != mode) {
-            spdlog::debug("Changed low latency algorithm to: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
-            if (mode == LatencyFlex)
+            spdlog::debug("Changed low latency algorithm to: {}", mode == Mode::AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+            if (mode == Mode::LatencyFlex)
                 lfx_stats.needs_reset = true;
         }
         if (previous_fg_status != fg) {
@@ -181,10 +181,10 @@ public:
         }
         previous_fg_status = fg;
 
-        spdlog::debug("LowLatency algo: {}", mode == AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+        spdlog::debug("LowLatency algo: {}", mode == Mode::AntiLag2 ? "AntiLag 2" : "LatencyFlex");
         spdlog::debug("FG status: {}", fg ? "enabled" : "disabled");
 
-        if (mode == AntiLag2) {
+        if (mode == Mode::AntiLag2) {
 #if _MSC_VER && _WIN64
             if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
             int max_fps = 0; 
@@ -205,7 +205,7 @@ public:
             else if (al2_dx11_ctx.m_pAntiLagAPI)
                 return AMD::AntiLag2DX11::Update(&al2_dx11_ctx, true, max_fps);
 #endif
-        } else if (mode == LatencyFlex) {
+        } else if (mode == Mode::LatencyFlex) {
             if (lfx_stats.needs_reset) {
                 spdlog::info("LFX Reset");
                 lfx_stats.frame_id = 1;
@@ -218,10 +218,10 @@ public:
             // Set FPS Limiter
             lfx_ctx->target_frame_time = 1000 * min_interval_us;
 
-            if (lfx_mode == Conservative) lfx_end_frame(0); // it should not be using this frame id in the conservative mode
+            if (lfx_mode == LFXMode::Conservative) lfx_end_frame(0); // it should not be using this frame id in the conservative mode
 
             lfx_mutex.lock();
-            auto frame_id = lfx_mode == ReflexIDs ? reflex_frame_id : lfx_stats.frame_id + 1;
+            auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id + 1;
             lfx_stats.target = lfx_ctx->GetWaitTarget(frame_id);
             lfx_mutex.unlock();
 
@@ -269,10 +269,10 @@ public:
     }
 
     inline void lfx_end_frame(uint64_t reflex_frame_id) {
-        if (mode == LatencyFlex) {
+        if (mode == Mode::LatencyFlex) {
             auto current_timestamp = get_timestamp();
             lfx_mutex.lock();
-            auto frame_id = lfx_mode == ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
+            auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
             lfx_ctx->EndFrame(frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
             lfx_mutex.unlock();
             spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
