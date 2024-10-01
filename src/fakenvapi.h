@@ -93,5 +93,5 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_SK_4(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_SK_5(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_Unload();
-    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime);
+    NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime);
 }

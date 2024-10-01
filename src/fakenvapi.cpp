@@ -40,7 +40,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc) {
-        tonvss(desc, "NvAPI dummy");
+        tonvss(desc, "fakenvapi");
         return OK();
     }
 
@@ -675,7 +675,7 @@ namespace nvd {
         return OK();
     }
 
-    NvAPI_Status __cdecl Dummy_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
+    NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
         if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
         if (lowlatency_ctx.get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);

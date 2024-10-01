@@ -45,7 +45,7 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_SK_3", 0xe3795199 },
     { "NvAPI_SK_4", 0xdf0dfcdd },
     { "NvAPI_SK_5", 0x932ac8fb },
-    { "Dummy_GetLatency", 0x21372137 }
+    { "Fake_GetLatency", 0x21372137 }
 };
 
 namespace nvd {
@@ -146,7 +146,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_4)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_5)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unload)
-            INSERT_AND_RETURN_WHEN_EQUALS(Dummy_GetLatency)
+            INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLatency)
 
             spdlog::debug("{}: not implemented, placeholder given", it->func);
             return registry.insert({ id, (void*)placeholder }).first->second;
