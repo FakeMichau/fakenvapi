@@ -13,6 +13,15 @@ int get_config(const wchar_t* section, const wchar_t* key, int default_value);
     if (std::string(it->func) == #method)     \
         return registry.insert({id, (void *)method}).first->second;
 
+static inline uint64_t get_timestamp() {
+    FILETIME fileTime;
+    GetSystemTimePreciseAsFileTime(&fileTime);
+
+    uint64_t time = (static_cast<uint64_t>(fileTime.dwHighDateTime) << 32) | fileTime.dwLowDateTime;
+
+    return time * 100;
+}
+
 // function taken from jp7677's dxvk-nvapi project licensed under MIT
 inline std::string from_error_nr(const int16_t error_nr) {
     static const std::map<int16_t, std::string> errors{

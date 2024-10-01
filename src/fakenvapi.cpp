@@ -333,10 +333,15 @@ namespace nvd {
         if (lowlatency_ctx.ignore_frameid(pSetLatencyMarkerParams->frameID))
             return NVAPI_OK;
 
-        spdlog::debug("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID);
+        // spdlog::debug("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID);
         lowlatency_ctx.init_al2(pDev);
+
+        static std::thread::id simulation_start_thread = {};
+
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
+            log_event("marker_SIMULATION_START", "{}", pSetLatencyMarkerParams->frameID);
+            simulation_start_thread = std::this_thread::get_id();
             if (lowlatency_ctx.call_spot == CallSpot::SleepCall) {
                 lowlatency_ctx.calls_without_sleep++;
                 if (lowlatency_ctx.calls_without_sleep > 10)
@@ -345,16 +350,36 @@ namespace nvd {
             if (lowlatency_ctx.call_spot != CallSpot::SimulationStart) break;
             spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
             break;
+        case SIMULATION_END:
+            log_event("marker_SIMULATION_END", "{}", pSetLatencyMarkerParams->frameID);
+            break;
+        case RENDERSUBMIT_START:
+            log_event("marker_RENDERSUBMIT_START", "{}", pSetLatencyMarkerParams->frameID);
+            break;
+        case RENDERSUBMIT_END:
+            log_event("marker_RENDERSUBMIT_END", "{}", pSetLatencyMarkerParams->frameID);
+            if (lowlatency_ctx.lfx_mode != LFXMode::Conservative) {
+                if (std::this_thread::get_id() == simulation_start_thread)
+                    lowlatency_ctx.lfx_mode = LFXMode::Aggressive;
+                else
+                    lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
+            }
+            break;
+        case PRESENT_START:
+            log_event("marker_PRESENT_START", "{}", pSetLatencyMarkerParams->frameID);
+            lowlatency_ctx.mark_end_of_rendering();
+            break;
+        case PRESENT_END:
+            log_event("marker_PRESENT_END", "{}", pSetLatencyMarkerParams->frameID);
+            break;
         case INPUT_SAMPLE:
+            log_event("marker_INPUT_SAMPLE", "{}", pSetLatencyMarkerParams->frameID);
             if (lowlatency_ctx.call_spot == CallSpot::SleepCall) break;
             lowlatency_ctx.call_spot = CallSpot::InputSample;
             spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
             break;
-        case PRESENT_START:
-            lowlatency_ctx.mark_end_of_rendering();
-            break;
-        case RENDERSUBMIT_END:
-            if (lowlatency_ctx.get_lfx_mode() != LFXMode::Conservative) lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
+        default:
+            log_event("marker_other", "{}", pSetLatencyMarkerParams->frameID);
             break;
         }
         return OK();
@@ -364,7 +389,7 @@ namespace nvd {
         if (!pDevice)
             return ERROR();
 
-        if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.get_lfx_mode() == LFXMode::ReflexIDs)
+        if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.lfx_mode == LFXMode::ReflexIDs)
             return OK();
 
         // HACK for RTSS injecting markers and sleep even when a game sends them already

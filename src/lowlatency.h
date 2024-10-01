@@ -62,16 +62,6 @@ class LowLatency {
     bool force_latencyflex = false;
     bool double_markers = false;
     ForceReflex force_reflex = ForceReflex::InGame;
-    LFXMode lfx_mode = {};
-
-    static inline uint64_t get_timestamp() {
-        FILETIME fileTime;
-        GetSystemTimePreciseAsFileTime(&fileTime);
-
-        uint64_t time = (static_cast<uint64_t>(fileTime.dwHighDateTime) << 32) | fileTime.dwLowDateTime;
-
-        return time * 100;
-    }
 
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
     static inline int timer_sleep(int64_t hundred_ns){
@@ -119,6 +109,7 @@ class LowLatency {
 public:
     CallSpot call_spot = CallSpot::SimulationStart;
     LFXStats lfx_stats = {};
+    LFXMode lfx_mode = {};
     uint64_t calls_without_sleep = 0;
     bool fg = false;
     bool active = true;
@@ -160,6 +151,7 @@ public:
     }
 
     inline HRESULT update(uint64_t reflex_frame_id) { 
+        log_event("update", "{}", reflex_frame_id);
         if (force_reflex == ForceReflex::ForceDisable || (force_reflex == ForceReflex::InGame && !active)) return S_FALSE;
 
         Mode previous_mode = mode;
@@ -222,6 +214,7 @@ public:
 
             lfx_mutex.lock();
             auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id + 1;
+            log_event("lfx_get_wait_target", "{}", frame_id);
             lfx_stats.target = lfx_ctx->GetWaitTarget(frame_id);
             lfx_mutex.unlock();
 
@@ -229,6 +222,7 @@ public:
                 static uint64_t timeout_events = 0;
                 uint64_t timeout_timestamp = current_timestamp + 50000000ULL;
                 if (lfx_stats.target > timeout_timestamp) {
+                    log_event("lfx_target_high", "{}", lfx_stats.target - timeout_timestamp);
                     timestamp = timeout_timestamp;
                     timeout_events++;
                     lfx_stats.needs_reset = timeout_events > 5;
@@ -236,6 +230,7 @@ public:
                     timestamp = lfx_stats.target;
                     timeout_events = 0;
                 }
+                log_event("lfx_sleep", "{}", timestamp - current_timestamp);
                 if (auto res = eepy(timestamp - current_timestamp); res)
                     spdlog::error("Sleep command failed: {}", res);
             } else {
@@ -244,6 +239,7 @@ public:
 
             lfx_mutex.lock();
             lfx_stats.frame_id++;
+            log_event("lfx_beginframe", "{}", frame_id);
             lfx_ctx->BeginFrame(frame_id, lfx_stats.target, timestamp);
             lfx_mutex.unlock();
             
@@ -273,6 +269,7 @@ public:
             auto current_timestamp = get_timestamp();
             lfx_mutex.lock();
             auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
+            log_event("lfx_endframe", "{}", frame_id);
             lfx_ctx->EndFrame(frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
             lfx_mutex.unlock();
             spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
@@ -295,10 +292,6 @@ public:
             min_interval_us = interval_us;
             spdlog::info("Changed max fps: {}", interval_us > 0 ? 1000000 / interval_us : 0);
         }
-    }
-
-    LFXMode get_lfx_mode() {
-        return lfx_mode;
     }
 
     Mode get_mode() {
