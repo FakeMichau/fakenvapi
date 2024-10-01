@@ -359,10 +359,15 @@ namespace nvd {
         case RENDERSUBMIT_END:
             log_event("marker_RENDERSUBMIT_END", "{}", pSetLatencyMarkerParams->frameID);
             if (lowlatency_ctx.lfx_mode != LFXMode::Conservative) {
-                if (std::this_thread::get_id() == simulation_start_thread)
+                if (std::this_thread::get_id() == simulation_start_thread) {
+                    static bool logged = false;
+                    if (!logged)
+                        spdlog::info("Falling back to LFX Aggressive");
+                    logged = true;
                     lowlatency_ctx.lfx_mode = LFXMode::Aggressive;
-                else
+                } else {
                     lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
+                }
             }
             break;
         case PRESENT_START:
