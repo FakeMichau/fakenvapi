@@ -143,11 +143,16 @@ public:
     }
 
     void init_lfx() {
-        lfx_ctx = new lfx::LatencyFleX();
-        force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
-        force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
-        lfx_mode = (LFXMode)get_config(L"fakenvapi", L"latencyflex_mode", 0);
-        spdlog::info("LatencyFleX initialized");
+        if (!lfx_ctx) {
+            lfx_ctx = new lfx::LatencyFleX();
+            force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
+            force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
+            lfx_mode = (LFXMode)get_config(L"fakenvapi", L"latencyflex_mode", 0);
+            spdlog::info("LatencyFleX initialized");
+            spdlog::info("Config force_latencyflex: {}", force_latencyflex ? "true" : "false");
+            spdlog::info("Config force_reflex: {}", (int)force_reflex);
+            spdlog::info("Config lfx_mode: {}", (int)lfx_mode);
+        }
     }
 
     inline HRESULT update(uint64_t reflex_frame_id) { 
