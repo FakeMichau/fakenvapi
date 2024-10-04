@@ -67,6 +67,7 @@ def convert(log_file):
                                 "ph": "X",
                                 "ts": begin_time,
                                 "dur": time_in_us - begin_time,
+                                "pid": 0,
                                 "args": {
                                     "frame_id": extra_data,
                                 }
@@ -81,6 +82,7 @@ def convert(log_file):
                         "ph": "X",
                         "ts": time_in_us,
                         "dur": duration_us,
+                        "pid": 0
                     })
                 else:
                     events.append({
@@ -88,6 +90,7 @@ def convert(log_file):
                         "cat": "General",
                         "ph": "i",
                         "ts": time_in_us,
+                        "pid": 0,
                         "args": {
                             "frame_id": extra_data
                         }
@@ -102,7 +105,7 @@ def main():
         trace_events = convert(log_file)
         if trace_events:
             with open(output_file, 'w') as file:
-                json.dump(trace_events, file, indent=4)
+                json.dump({"traceEvents": trace_events}, file, indent=4)
             print("Trace event data saved to", output_file)
         else:
             print("No data to convert.")

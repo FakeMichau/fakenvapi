@@ -587,6 +587,30 @@ namespace nvd {
         if (lowlatency_ctx.ignore_frameid(pSetAsyncFrameMarkerParams->frameID))
             return NVAPI_OK;
 
+        switch (pSetAsyncFrameMarkerParams->markerType) {
+            case PRESENT_START:
+                log_event("async_marker_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+            case PRESENT_END:
+                log_event("async_marker_PRESENT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+            case OUT_OF_BAND_RENDERSUBMIT_START:
+                log_event("async_marker_OUB_RENDERSUBMIT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+            case OUT_OF_BAND_RENDERSUBMIT_END:
+                log_event("async_marker_OUB_RENDERSUBMIT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+            case OUT_OF_BAND_PRESENT_START:
+                log_event("async_marker_OUB_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+            case OUT_OF_BAND_PRESENT_END:
+                log_event("async_marker_OUB_PRESENT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+            default:
+                log_event("async_marker_other", "{}", pSetAsyncFrameMarkerParams->frameID);
+                break;
+        }
+
         if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START) {
             constexpr unsigned int history_size = 10;
             static NvU64 counter = 0;
@@ -610,7 +634,7 @@ namespace nvd {
             lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
             previous_frame_id = current_frame_id;
         }
-        spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);
+        // spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);
         return OK();
     }
 
