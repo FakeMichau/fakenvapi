@@ -13,18 +13,24 @@
 #include "../version.h"
 
 #include "log.h"
+#include "config.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     switch (fdwReason) {
     case DLL_PROCESS_ATTACH:
-        if (get_config(L"fakenvapi", L"enable_logs", true))
-            if (get_config(L"fakenvapi", L"enable_trace_logs", false))
+        Config::get().init_config();
+        if (Config::get().get_enable_logs())
+            if (Config::get().get_enable_trace_logs())
                 prepare_logging(spdlog::level::trace);
             else
                 prepare_logging(spdlog::level::info);
         else
             prepare_logging(spdlog::level::off);
         spdlog::critical("fakenvapi version: {}", FAKENVAPI_VERSION);
+        spdlog::info("Config enable_trace_logs: {}", Config::get().get_enable_trace_logs() ? "true" : "false");
+        spdlog::info("Config force_latencyflex: {}", Config::get().get_force_latencyflex() ? "true" : "false");
+        spdlog::info("Config force_reflex: {}", (int)Config::get().get_force_reflex());
+        spdlog::info("Config lfx_mode: {}", (int)Config::get().get_latencyflex_mode());
         break;
     case DLL_PROCESS_DETACH:
         nvd::lowlatency_ctx.unload();

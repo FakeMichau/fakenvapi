@@ -15,6 +15,7 @@
 #include "../external/latencyflex.h"
 
 #include "log.h"
+#include "config.h"
 
 enum class Mode {
     AntiLag2,
@@ -25,18 +26,6 @@ enum class CallSpot {
     SleepCall = 0,
     InputSample = 1,
     SimulationStart = 2
-};
-
-enum class ForceReflex {
-    InGame,
-    ForceDisable,
-    ForceEnable
-};
-
-enum class LFXMode {
-    Conservative,
-    Aggressive,
-    ReflexIDs
 };
 
 struct LFXStats {
@@ -142,25 +131,28 @@ public:
 #endif
     }
 
+    inline void update_config() {
+        force_latencyflex = Config::get().get_force_latencyflex();
+        force_reflex = Config::get().get_force_reflex();
+        lfx_mode = Config::get().get_latencyflex_mode();
+    }
+
     void init_lfx() {
         if (!lfx_ctx) {
             lfx_ctx = new lfx::LatencyFleX();
-            force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
-            force_reflex = (ForceReflex)get_config(L"fakenvapi", L"force_reflex", 0);
-            lfx_mode = (LFXMode)get_config(L"fakenvapi", L"latencyflex_mode", 0);
+            update_config();
             spdlog::info("LatencyFleX initialized");
-            spdlog::info("Config force_latencyflex: {}", force_latencyflex ? "true" : "false");
-            spdlog::info("Config force_reflex: {}", (int)force_reflex);
-            spdlog::info("Config lfx_mode: {}", (int)lfx_mode);
         }
     }
 
     inline HRESULT update(uint64_t reflex_frame_id) { 
+        update_config();
         log_event("update", "{}", reflex_frame_id);
         if (force_reflex == ForceReflex::ForceDisable || (force_reflex == ForceReflex::InGame && !active)) return S_FALSE;
 
         Mode previous_mode = mode;
         static bool previous_fg_status = fg;
+        static LFXMode previous_lfx_mode = lfx_mode;
 
         if (al_available && !force_latencyflex) 
             mode = Mode::AntiLag2;
@@ -172,11 +164,16 @@ public:
             if (mode == Mode::LatencyFlex)
                 lfx_stats.needs_reset = true;
         }
+
         if (previous_fg_status != fg) {
             spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
             lfx_stats.needs_reset = true;
         }
         previous_fg_status = fg;
+
+        if (previous_lfx_mode != lfx_mode)
+            lfx_stats.needs_reset = true;
+        previous_lfx_mode = lfx_mode;
 
         spdlog::debug("LowLatency algo: {}", mode == Mode::AntiLag2 ? "AntiLag 2" : "LatencyFlex");
         spdlog::debug("FG status: {}", fg ? "enabled" : "disabled");
@@ -197,14 +194,19 @@ public:
             } else {
                 max_fps = min_interval_us > 0 ? 1000000 / min_interval_us : 0;
             }
+            HRESULT result = {};
+            auto pre_sleep = get_timestamp();
             if (al2_dx12_ctx.m_pAntiLagAPI)
-                return AMD::AntiLag2DX12::Update(&al2_dx12_ctx, true, max_fps);
+                result = AMD::AntiLag2DX12::Update(&al2_dx12_ctx, true, max_fps);
             else if (al2_dx11_ctx.m_pAntiLagAPI)
-                return AMD::AntiLag2DX11::Update(&al2_dx11_ctx, true, max_fps);
+                result = AMD::AntiLag2DX11::Update(&al2_dx11_ctx, true, max_fps);
+            log_event("al2_sleep", "{}", get_timestamp() - pre_sleep);
+            return result;
 #endif
         } else if (mode == Mode::LatencyFlex) {
             if (lfx_stats.needs_reset) {
                 spdlog::info("LFX Reset");
+                eepy(200000000ULL);
                 lfx_stats.frame_id = 1;
                 lfx_stats.needs_reset = false;
                 lfx_ctx->Reset();
@@ -253,32 +255,34 @@ public:
         return S_FALSE;
     }
 
-    inline HRESULT set_fg_type(bool interpolated) {
+    inline HRESULT set_fg_type(bool interpolated, uint64_t reflex_frame_id) {
 #if _MSC_VER && _WIN64
-        if (fg)
+        if (fg) {
+            log_event("al2_set_fg_type", "{}", reflex_frame_id);
             return AMD::AntiLag2DX12::SetFrameGenFrameType(&al2_dx12_ctx, interpolated);
+        }
 #endif
         return S_FALSE;
     }
 
-    inline HRESULT mark_end_of_rendering() {
+    inline HRESULT mark_end_of_rendering(uint64_t reflex_frame_id) {
 #if _MSC_VER && _WIN64
-        if (fg)
+        if (fg) {
+            log_event("al2_end_of_rendering", "{}", reflex_frame_id);
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&al2_dx12_ctx);
+        }
 #endif
         return S_FALSE;
     }
 
     inline void lfx_end_frame(uint64_t reflex_frame_id) {
-        if (mode == Mode::LatencyFlex) {
-            auto current_timestamp = get_timestamp();
-            lfx_mutex.lock();
-            auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
-            log_event("lfx_endframe", "{}", frame_id);
-            lfx_ctx->EndFrame(frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
-            lfx_mutex.unlock();
-            spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
-        }
+        auto current_timestamp = get_timestamp();
+        lfx_mutex.lock();
+        auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
+        log_event("lfx_endframe", "{}", frame_id);
+        lfx_ctx->EndFrame(frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
+        lfx_mutex.unlock();
+        spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
     }
 
     inline void unload() {

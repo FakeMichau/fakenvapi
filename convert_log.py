@@ -21,7 +21,10 @@ def convert(log_file):
         "lfx_beginframe": "lfx_endframe",
         "marker_SIMULATION_START": "marker_SIMULATION_END",
         "marker_RENDERSUBMIT_START": "marker_RENDERSUBMIT_END",
-        "marker_PRESENT_START": "marker_PRESENT_END"
+        "marker_PRESENT_START": "marker_PRESENT_END",
+        "async_marker_PRESENT_START": "async_marker_PRESENT_START",
+        "async_marker_OUB_RENDERSUBMIT_START": "async_marker_OUB_RENDERSUBMIT_END",
+        "async_marker_OUB_PRESENT_START": "async_marker_OUB_PRESENT_END"
     }
     in_progress_events = {}
     events = []
@@ -74,7 +77,7 @@ def convert(log_file):
                             })
                         if not in_progress_events[extra_data]:
                             del in_progress_events[extra_data]
-                elif event_name == "lfx_sleep":
+                elif event_name == "lfx_sleep" or event_name == "al2_sleep":
                     duration_us = int(extra_data) // 1000
                     events.append({
                         "name": event_name,

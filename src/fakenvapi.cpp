@@ -358,7 +358,7 @@ namespace nvd {
             break;
         case RENDERSUBMIT_END:
             log_event("marker_RENDERSUBMIT_END", "{}", pSetLatencyMarkerParams->frameID);
-            if (lowlatency_ctx.lfx_mode != LFXMode::Conservative) {
+            if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.lfx_mode != LFXMode::Conservative) {
                 if (std::this_thread::get_id() == simulation_start_thread) {
                     static bool logged = false;
                     if (!logged)
@@ -372,7 +372,7 @@ namespace nvd {
             break;
         case PRESENT_START:
             log_event("marker_PRESENT_START", "{}", pSetLatencyMarkerParams->frameID);
-            lowlatency_ctx.mark_end_of_rendering();
+            lowlatency_ctx.mark_end_of_rendering(pSetLatencyMarkerParams->frameID);
             break;
         case PRESENT_END:
             log_event("marker_PRESENT_END", "{}", pSetLatencyMarkerParams->frameID);
@@ -600,39 +600,37 @@ namespace nvd {
             case OUT_OF_BAND_RENDERSUBMIT_END:
                 log_event("async_marker_OUB_RENDERSUBMIT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
                 break;
-            case OUT_OF_BAND_PRESENT_START:
+            case OUT_OF_BAND_PRESENT_START: {
                 log_event("async_marker_OUB_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
+                constexpr unsigned int history_size = 10;
+                static NvU64 counter = 0;
+                static NvU64 previous_frame_ids[history_size] = {};
+                static NvU64 previous_frame_id = 0;
+                NvU64 current_frame_id = pSetAsyncFrameMarkerParams->frameID;
+
+                previous_frame_ids[counter%history_size] = current_frame_id;
+                counter++;
+
+                std::unordered_set<NvU64> seen;
+                unsigned int repeat_count = 0;
+                for (const NvU64& frame_id : previous_frame_ids) {
+                    if (seen.contains(frame_id)) repeat_count++;
+                    else seen.insert(frame_id);
+                }
+
+                if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
+                else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
+
+                lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id, current_frame_id);
+                previous_frame_id = current_frame_id;
                 break;
+            }
             case OUT_OF_BAND_PRESENT_END:
                 log_event("async_marker_OUB_PRESENT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
                 break;
             default:
                 log_event("async_marker_other", "{}", pSetAsyncFrameMarkerParams->frameID);
                 break;
-        }
-
-        if (pSetAsyncFrameMarkerParams->markerType == OUT_OF_BAND_PRESENT_START) {
-            constexpr unsigned int history_size = 10;
-            static NvU64 counter = 0;
-            static NvU64 previous_frame_ids[history_size] = {};
-            static NvU64 previous_frame_id = 0;
-            NvU64 current_frame_id = pSetAsyncFrameMarkerParams->frameID;
-
-            previous_frame_ids[counter%history_size] = current_frame_id;
-            counter++;
-
-            std::unordered_set<NvU64> seen;
-            unsigned int repeat_count = 0;
-            for (const NvU64& frame_id : previous_frame_ids) {
-                if (seen.contains(frame_id)) repeat_count++;
-                else seen.insert(frame_id);
-            }
-
-            if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
-            else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
-
-            lowlatency_ctx.set_fg_type(previous_frame_id == current_frame_id);
-            previous_frame_id = current_frame_id;
         }
         // spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);
         return OK();
