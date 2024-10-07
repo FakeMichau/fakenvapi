@@ -50,12 +50,12 @@ class Config {
         auto latencyflex_mode   = get_config(L"fakenvapi", L"latencyflex_mode",  (int)LFXMode::Conservative);
         auto force_reflex       = get_config(L"fakenvapi", L"force_reflex",      (int)ForceReflex::InGame);
 
-        if (latencyflex_mode >= (int)LFXMode::Conservative && latencyflex_mode >= (int)LFXMode::ReflexIDs)
+        if (latencyflex_mode >= (int)LFXMode::Conservative && latencyflex_mode <= (int)LFXMode::ReflexIDs)
             _latencyflex_mode = (LFXMode)latencyflex_mode;
         else
             _latencyflex_mode = LFXMode::Conservative;
 
-        if (force_reflex >= (int)ForceReflex::InGame && force_reflex >= (int)ForceReflex::ForceEnable)
+        if (force_reflex >= (int)ForceReflex::InGame && force_reflex <= (int)ForceReflex::ForceEnable)
             _force_reflex = (ForceReflex)force_reflex;
         else
             _force_reflex = ForceReflex::InGame;
@@ -64,6 +64,10 @@ class Config {
 
         // Some of them won't be logged as logging needs to be set up
         spdlog::info("Config updated");
+        spdlog::info("Config enable_trace_logs: {}", _enable_trace_logs ? "true" : "false");
+        spdlog::info("Config force_latencyflex: {}", _force_latencyflex ? "true" : "false");
+        spdlog::info("Config force_reflex: {}", (int)_force_reflex);
+        spdlog::info("Config lfx_mode: {}", (int)_latencyflex_mode);
     }
 
     FILETIME get_last_write_time(const wchar_t file_path[MAX_PATH]) {
