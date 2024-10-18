@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <chrono>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -23,6 +24,7 @@ class Config {
     bool _force_latencyflex = false;
     LFXMode _latencyflex_mode = LFXMode::Conservative;
     ForceReflex _force_reflex = ForceReflex::InGame;
+    bool _save_pcl_to_file = false;
 
     std::mutex update;
 
@@ -36,7 +38,7 @@ class Config {
         wcscat(path, L"\\fakenvapi.ini");
     }
 
-    int get_config(const wchar_t* section, const wchar_t* key, int default_value) {        
+    int get_config(const wchar_t* section, const wchar_t* key, int default_value) {
         return GetPrivateProfileIntW(section, key, default_value, path);
     }
 
@@ -46,6 +48,7 @@ class Config {
         _enable_logs       = get_config(L"fakenvapi", L"enable_logs",       true);
         _enable_trace_logs = get_config(L"fakenvapi", L"enable_trace_logs", false);
         _force_latencyflex = get_config(L"fakenvapi", L"force_latencyflex", false);
+        _save_pcl_to_file  = get_config(L"fakenvapi", L"save_pcl_to_file",  false);
 
         auto latencyflex_mode   = get_config(L"fakenvapi", L"latencyflex_mode",  (int)LFXMode::Conservative);
         auto force_reflex       = get_config(L"fakenvapi", L"force_reflex",      (int)ForceReflex::InGame);
@@ -60,14 +63,21 @@ class Config {
         else
             _force_reflex = ForceReflex::InGame;
         
-        update.unlock();
+        auto level = _enable_trace_logs ? spdlog::level::trace : spdlog::level::info;
+        spdlog::set_level(level);
+        spdlog::flush_on(level);
 
         // Some of them won't be logged as logging needs to be set up
         spdlog::info("Config updated");
+
+        // TODO: make it a function
         spdlog::info("Config enable_trace_logs: {}", _enable_trace_logs ? "true" : "false");
         spdlog::info("Config force_latencyflex: {}", _force_latencyflex ? "true" : "false");
         spdlog::info("Config force_reflex: {}", (int)_force_reflex);
         spdlog::info("Config lfx_mode: {}", (int)_latencyflex_mode);
+        spdlog::info("Config save_pcl_to_file: {}", _save_pcl_to_file ? "true" : "false");
+
+        update.unlock();
     }
 
     FILETIME get_last_write_time(const wchar_t file_path[MAX_PATH]) {
@@ -99,8 +109,8 @@ class Config {
         while (true) {
             if (DWORD wait_status = WaitForSingleObject(change_handle, INFINITE); wait_status == WAIT_OBJECT_0) {
                 FILETIME current_write_time = get_last_write_time(path);
-
                 if (CompareFileTime(&last_write_time, &current_write_time) != 0) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     update_config();
                     last_write_time = current_write_time;
                 }
@@ -146,5 +156,9 @@ public:
 
     ForceReflex get_force_reflex() {
         return _force_reflex;
+    }
+
+    bool get_save_pcl_to_file() {
+        return _save_pcl_to_file;
     }
 };

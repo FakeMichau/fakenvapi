@@ -31,6 +31,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
         spdlog::info("Config force_latencyflex: {}", Config::get().get_force_latencyflex() ? "true" : "false");
         spdlog::info("Config force_reflex: {}", (int)Config::get().get_force_reflex());
         spdlog::info("Config lfx_mode: {}", (int)Config::get().get_latencyflex_mode());
+        spdlog::info("Config save_pcl_to_file: {}", Config::get().get_save_pcl_to_file() ? "true" : "false");
         break;
     case DLL_PROCESS_DETACH:
         nvd::lowlatency_ctx.unload();

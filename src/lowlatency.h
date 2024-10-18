@@ -52,6 +52,10 @@ class LowLatency {
     bool double_markers = false;
     ForceReflex force_reflex = ForceReflex::InGame;
 
+    static constexpr uint64_t pcl_max_inprogress_frames = 16;
+    uint64_t pcl_start_timestamps[pcl_max_inprogress_frames] = {};
+    uint64_t pcl_start_ids[pcl_max_inprogress_frames] = {};
+
     // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
     static inline int timer_sleep(int64_t hundred_ns){
         static HANDLE timer = CreateWaitableTimerExW(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
@@ -283,6 +287,20 @@ public:
         lfx_ctx->EndFrame(frame_id, current_timestamp, &lfx_stats.latency, &lfx_stats.frame_time);
         lfx_mutex.unlock();
         spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
+    }
+
+    inline void pcl_start(uint64_t reflex_frame_id) {
+        pcl_start_ids[reflex_frame_id % pcl_max_inprogress_frames] = reflex_frame_id;
+        pcl_start_timestamps[reflex_frame_id % pcl_max_inprogress_frames] = get_timestamp();
+    }
+
+    inline void pcl_end(uint64_t reflex_frame_id) {
+        if (pcl_start_ids[reflex_frame_id % pcl_max_inprogress_frames] == reflex_frame_id) {
+            pcl_start_ids[reflex_frame_id % pcl_max_inprogress_frames] = UINT64_MAX;
+            double time_taken = get_timestamp() - pcl_start_timestamps[reflex_frame_id % pcl_max_inprogress_frames];
+            double time_taken_ms = time_taken / 1000000;
+            log_pcl(time_taken_ms);
+        }
     }
 
     inline void unload() {

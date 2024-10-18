@@ -341,6 +341,7 @@ namespace nvd {
         switch (pSetLatencyMarkerParams->markerType) {
         case SIMULATION_START:
             log_event("marker_SIMULATION_START", "{}", pSetLatencyMarkerParams->frameID);
+            lowlatency_ctx.pcl_start(pSetLatencyMarkerParams->frameID);
             simulation_start_thread = std::this_thread::get_id();
             if (lowlatency_ctx.call_spot == CallSpot::SleepCall) {
                 lowlatency_ctx.calls_without_sleep++;
@@ -358,6 +359,10 @@ namespace nvd {
             break;
         case RENDERSUBMIT_END:
             log_event("marker_RENDERSUBMIT_END", "{}", pSetLatencyMarkerParams->frameID);
+
+            if (!lowlatency_ctx.fg)
+                lowlatency_ctx.pcl_end(pSetLatencyMarkerParams->frameID);
+
             if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.lfx_mode != LFXMode::Conservative) {
                 if (std::this_thread::get_id() == simulation_start_thread) {
                     static bool logged = false;
@@ -587,6 +592,8 @@ namespace nvd {
         if (lowlatency_ctx.ignore_frameid(pSetAsyncFrameMarkerParams->frameID))
             return NVAPI_OK;
 
+        static NvU64 previous_frame_id = 0;
+        static NvU64 current_frame_id = 0;
         switch (pSetAsyncFrameMarkerParams->markerType) {
             case PRESENT_START:
                 log_event("async_marker_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
@@ -605,8 +612,7 @@ namespace nvd {
                 constexpr unsigned int history_size = 10;
                 static NvU64 counter = 0;
                 static NvU64 previous_frame_ids[history_size] = {};
-                static NvU64 previous_frame_id = 0;
-                NvU64 current_frame_id = pSetAsyncFrameMarkerParams->frameID;
+                current_frame_id = pSetAsyncFrameMarkerParams->frameID;
 
                 previous_frame_ids[counter%history_size] = current_frame_id;
                 counter++;
@@ -627,6 +633,8 @@ namespace nvd {
             }
             case OUT_OF_BAND_PRESENT_END:
                 log_event("async_marker_OUB_PRESENT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
+                if (previous_frame_id == current_frame_id)
+                    lowlatency_ctx.pcl_end(pSetAsyncFrameMarkerParams->frameID);
                 break;
             default:
                 log_event("async_marker_other", "{}", pSetAsyncFrameMarkerParams->frameID);

@@ -31,3 +31,11 @@ void close_logging() {
     spdlog::default_logger()->flush();
 	spdlog::shutdown();
 }
+
+void log_pcl(double pcl) {
+    if (Config::get().get_save_pcl_to_file()) {
+        std::ofstream output("pcl", std::ofstream::trunc);
+        output << std::setprecision(2) << std::fixed << pcl;
+        output.close();
+    }
+}

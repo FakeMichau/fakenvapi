@@ -1,10 +1,12 @@
 #pragma once
 #include <iostream>
-#include "util.h"
+#include <fstream>
+#include <format>
 #include "../external/nvapi.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include <format>
+#include "util.h"
+#include "config.h"
 
 #define OK() Ok(__func__)
 #undef ERROR
@@ -15,6 +17,8 @@ NvAPI_Status Ok(const char* function_name);
 NvAPI_Status Error(const char* function_name, NvAPI_Status status = NVAPI_ERROR);
 void prepare_logging(spdlog::level::level_enum level);
 void close_logging();
+
+void log_pcl(double pcl);
 
 template <typename... _Args>
 void log_event(const char* event_name, std::format_string<_Args...> __fmt, _Args&&... __args) {
