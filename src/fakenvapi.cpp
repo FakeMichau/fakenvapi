@@ -308,6 +308,16 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
+        if (pGetLatencyParams == nullptr)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+        
+        memcpy(&pGetLatencyParams->frameReport, &lowlatency_ctx.frame_reports, sizeof(lowlatency_ctx.frame_reports));
+
+        // FrameReport* frame_reports = reinterpret_cast<FrameReport*>(pGetLatencyParams->frameReport);
+        // std::sort(frame_reports, frame_reports + 64, [](const FrameReport &a, const FrameReport &b) {
+        //     return a.frameID < b.frameID;
+        // });
+
         return OK();
     }
 
@@ -330,11 +340,9 @@ namespace nvd {
         if (!pDev)
             return ERROR();
 
-        if (lowlatency_ctx.ignore_frameid(pSetLatencyMarkerParams->frameID))
-            return NVAPI_OK;
-
-        // spdlog::debug("markerType: {}, frame id: {}", (unsigned int)pSetLatencyMarkerParams->markerType, (unsigned long long)pSetLatencyMarkerParams->frameID);
         lowlatency_ctx.init_al2(pDev);
+
+        lowlatency_ctx.report_marker(pSetLatencyMarkerParams);
 
         static std::thread::id simulation_start_thread = {};
 
@@ -401,14 +409,6 @@ namespace nvd {
 
         if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.lfx_mode == LFXMode::ReflexIDs)
             return OK();
-
-        // HACK for RTSS injecting markers and sleep even when a game sends them already
-        // TODO: option to reset the accepted_thread_id?
-        static std::thread::id accepted_thread_id = std::this_thread::get_id();
-        std::thread::id current_thread_id = std::this_thread::get_id();
-        spdlog::trace("Sleep called");
-        if (accepted_thread_id != current_thread_id && lowlatency_ctx.is_double_markers())
-            return NVAPI_OK; // skip that thread
 
         lowlatency_ctx.init_al2(pDevice);
         lowlatency_ctx.call_spot = CallSpot::SleepCall;
@@ -589,9 +589,6 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams) {
-        if (lowlatency_ctx.ignore_frameid(pSetAsyncFrameMarkerParams->frameID))
-            return NVAPI_OK;
-
         static NvU64 previous_frame_id = 0;
         static NvU64 current_frame_id = 0;
         switch (pSetAsyncFrameMarkerParams->markerType) {
@@ -640,7 +637,6 @@ namespace nvd {
                 log_event("async_marker_other", "{}", pSetAsyncFrameMarkerParams->frameID);
                 break;
         }
-        // spdlog::debug("Async markerType: {}, frame id: {}", (unsigned int)pSetAsyncFrameMarkerParams->markerType, (unsigned long long)pSetAsyncFrameMarkerParams->frameID);
         return OK();
     }
 

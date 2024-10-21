@@ -36,6 +36,26 @@ struct LFXStats {
     bool needs_reset = false;      
 };
 
+struct FrameReport {
+    NvU64 frameID;
+    NvU64 inputSampleTime;
+    NvU64 simStartTime;
+    NvU64 simEndTime;
+    NvU64 renderSubmitStartTime;
+    NvU64 renderSubmitEndTime;
+    NvU64 presentStartTime;
+    NvU64 presentEndTime;
+    NvU64 driverStartTime;
+    NvU64 driverEndTime;
+    NvU64 osRenderQueueStartTime;
+    NvU64 osRenderQueueEndTime;
+    NvU64 gpuRenderStartTime;
+    NvU64 gpuRenderEndTime;
+    NvU32 gpuActiveRenderTimeUs;
+    NvU32 gpuFrameTimeUs;
+    NvU8 rsvd[120];
+};
+
 class LowLatency {
 #if _MSC_VER && _WIN64
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
@@ -49,7 +69,6 @@ class LowLatency {
     unsigned long min_interval_us = 0;
     bool al_available = false;
     bool force_latencyflex = false;
-    bool double_markers = false;
     ForceReflex force_reflex = ForceReflex::InGame;
 
     static constexpr uint64_t pcl_max_inprogress_frames = 16;
@@ -104,6 +123,7 @@ public:
     LFXStats lfx_stats = {};
     LFXMode lfx_mode = {};
     uint64_t calls_without_sleep = 0;
+    FrameReport frame_reports[64];
     bool fg = false;
     bool active = true;
 
@@ -303,6 +323,49 @@ public:
         }
     }
 
+    void report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+        auto current_timestamp = get_timestamp() / 1000;
+        static auto last_sim_start = current_timestamp;
+        static auto _2nd_last_sim_start = current_timestamp;
+        auto current_report = &frame_reports[pSetLatencyMarkerParams->frameID % 64];
+        current_report->frameID = pSetLatencyMarkerParams->frameID;
+        current_report->gpuFrameTimeUs = last_sim_start - _2nd_last_sim_start;
+        current_report->gpuActiveRenderTimeUs = 100;
+        current_report->driverStartTime = current_timestamp;
+        current_report->driverEndTime = current_timestamp + 100;
+        current_report->gpuRenderStartTime = current_timestamp;
+        current_report->gpuRenderEndTime = current_timestamp + 100;
+        current_report->osRenderQueueStartTime = current_timestamp;
+        current_report->osRenderQueueEndTime = current_timestamp + 100;
+        switch (pSetLatencyMarkerParams->markerType) {
+            case SIMULATION_START:
+                _2nd_last_sim_start = last_sim_start;
+                last_sim_start = get_timestamp() / 1000;
+                current_report->simStartTime = last_sim_start;
+                break;
+            case SIMULATION_END:
+                current_report->simEndTime = get_timestamp() / 1000;
+                break;
+            case RENDERSUBMIT_START:
+                current_report->renderSubmitStartTime = get_timestamp() / 1000;
+                break;
+            case RENDERSUBMIT_END:
+                current_report->renderSubmitEndTime = get_timestamp() / 1000;
+                break;
+            case PRESENT_START:
+                current_report->presentStartTime = get_timestamp() / 1000;
+                break;
+            case PRESENT_END:
+                current_report->presentEndTime = get_timestamp() / 1000;
+                break;
+            case INPUT_SAMPLE:
+                current_report->inputSampleTime = get_timestamp() / 1000;
+                break;
+            default:
+                break;
+        }
+    }
+
     inline void unload() {
 #if _MSC_VER && _WIN64
         if (al2_dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&al2_dx12_ctx))
@@ -323,26 +386,5 @@ public:
 
     Mode get_mode() {
         return mode;
-    }
-
-    bool is_double_markers() {
-        return double_markers;
-    }
-
-    bool ignore_frameid(uint64_t frameid) {
-        static constexpr uint64_t high_frameid_threshold = 1000000000;
-        static bool low_frameid_encountered = false;
-        if (frameid < high_frameid_threshold) {
-            low_frameid_encountered = true;
-            return false;
-        } else {
-            if (low_frameid_encountered) {
-                if (!double_markers)
-                    spdlog::warn("Double reflex latency markers detected, disable RTSS!");
-                double_markers = true;
-            }
-            // For high frameids return true only if a low number has been seen before
-            return low_frameid_encountered;
-        }
     }
 };
