@@ -58,8 +58,6 @@ struct FrameReport {
 
 class LowLatency {
 #if _MSC_VER && _WIN64
-    AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
-    AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
     Mode mode = Mode::AntiLag2;
 #else
     Mode mode = Mode::LatencyFlex;
@@ -119,12 +117,15 @@ class LowLatency {
     }
 
 public:
+    AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
+    AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
     CallSpot call_spot = CallSpot::SimulationStart;
     LFXStats lfx_stats = {};
     LFXMode lfx_mode = {};
     uint64_t calls_without_sleep = 0;
     FrameReport frame_reports[64];
     bool fg = false;
+    bool forced_fg = false;
     bool active = true;
 
     inline void init_al2(IUnknown *pDevice) {
@@ -174,8 +175,9 @@ public:
         log_event("update", "{}", reflex_frame_id);
         if (force_reflex == ForceReflex::ForceDisable || (force_reflex == ForceReflex::InGame && !active)) return S_FALSE;
 
+        bool effective_fg_state = (fg || forced_fg);
         Mode previous_mode = mode;
-        static bool previous_fg_status = fg;
+        static bool previous_fg_status = effective_fg_state;
         static LFXMode previous_lfx_mode = lfx_mode;
 
         if (al_available && !force_latencyflex) 
@@ -189,18 +191,18 @@ public:
                 lfx_stats.needs_reset = true;
         }
 
-        if (previous_fg_status != fg) {
-            spdlog::info("FG mode changed to: {}", fg ? "enabled" : "disabled");
+        if (previous_fg_status != effective_fg_state) {
+            spdlog::info("FG mode changed to: {}", effective_fg_state ? "enabled" : "disabled");
             lfx_stats.needs_reset = true;
         }
-        previous_fg_status = fg;
+        previous_fg_status = effective_fg_state;
 
         if (previous_lfx_mode != lfx_mode)
             lfx_stats.needs_reset = true;
         previous_lfx_mode = lfx_mode;
 
         spdlog::debug("LowLatency algo: {}", mode == Mode::AntiLag2 ? "AntiLag 2" : "LatencyFlex");
-        spdlog::debug("FG status: {}", fg ? "enabled" : "disabled");
+        spdlog::debug("FG status: {}", effective_fg_state ? "enabled" : "disabled");
 
         if (mode == Mode::AntiLag2) {
 #if _MSC_VER && _WIN64
@@ -281,7 +283,7 @@ public:
 
     inline HRESULT set_fg_type(bool interpolated, uint64_t reflex_frame_id) {
 #if _MSC_VER && _WIN64
-        if (fg) {
+        if (fg || forced_fg) {
             log_event("al2_set_fg_type", "{}", reflex_frame_id);
             return AMD::AntiLag2DX12::SetFrameGenFrameType(&al2_dx12_ctx, interpolated);
         }
@@ -291,7 +293,7 @@ public:
 
     inline HRESULT mark_end_of_rendering(uint64_t reflex_frame_id) {
 #if _MSC_VER && _WIN64
-        if (fg) {
+        if (fg || forced_fg) {
             log_event("al2_end_of_rendering", "{}", reflex_frame_id);
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&al2_dx12_ctx);
         }

@@ -718,4 +718,26 @@ namespace nvd {
 
         return OK();
     }
+
+    NvAPI_Status __cdecl Fake_InformFGState(bool fg_state) {
+        lowlatency_ctx.forced_fg = fg_state;
+        return OK();
+    }
+
+    NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id) {
+        lowlatency_ctx.set_fg_type(frame_interpolated, reflex_frame_id);
+        return OK();
+    }
+
+    NvAPI_Status __cdecl Fake_GetAntiLagCtx(AMD::AntiLag2DX12::Context** al2_context) {
+        if (al2_context == nullptr)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+
+        if (lowlatency_ctx.al2_dx12_ctx.m_pAntiLagAPI != nullptr) {
+            *al2_context = &lowlatency_ctx.al2_dx12_ctx;
+            return OK();
+        }
+
+        return ERROR();
+    }
 }

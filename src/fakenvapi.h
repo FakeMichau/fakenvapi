@@ -93,5 +93,8 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_SK_4(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_SK_5(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_Unload();
-    NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* waitTarget, uint64_t* latency, uint64_t* frameTime);
+    NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* wait_target, uint64_t* latency, uint64_t* frame_time);
+    NvAPI_Status __cdecl Fake_InformFGState(bool fg_state);
+    NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id);
+    NvAPI_Status __cdecl Fake_GetAntiLagCtx(AMD::AntiLag2DX12::Context** al2_context);
 }
