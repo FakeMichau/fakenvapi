@@ -117,8 +117,10 @@ class LowLatency {
     }
 
 public:
+#if _MSC_VER && _WIN64
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
     AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
+#endif
     CallSpot call_spot = CallSpot::SimulationStart;
     LFXStats lfx_stats = {};
     LFXMode lfx_mode = {};

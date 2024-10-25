@@ -159,7 +159,9 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLatency)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformFGState)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformPresentFG)
+#if _MSC_VER && _WIN64
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetAntiLagCtx)
+#endif
 
             spdlog::debug("{}: not implemented, placeholder given", it->func);
             return registry.insert({ id, (void*)placeholder }).first->second;
