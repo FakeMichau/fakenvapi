@@ -210,7 +210,7 @@ public:
 #if _MSC_VER && _WIN64
             if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
             int max_fps = 0; 
-            if (fg && min_interval_us != 0) {
+            if ((fg || forced_fg) && min_interval_us != 0) {
                 static uint64_t previous_frame_time = 0;
                 uint64_t current_time = get_timestamp();
                 uint64_t frame_time = current_time - previous_frame_time;
