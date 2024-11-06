@@ -64,6 +64,7 @@ class LowLatency {
 #endif
     lfx::LatencyFleX *lfx_ctx = nullptr;
     std::mutex lfx_mutex;
+    std::mutex update_mutex;
     unsigned long min_interval_us = 0;
     bool al_available = false;
     bool force_latencyflex = false;
@@ -121,7 +122,7 @@ public:
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
     AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
 #endif
-    CallSpot call_spot = CallSpot::SimulationStart;
+    CallSpot call_spot = CallSpot::SleepCall;
     LFXStats lfx_stats = {};
     LFXMode lfx_mode = {};
     uint64_t calls_without_sleep = 0;
@@ -173,7 +174,10 @@ public:
     }
 
     inline HRESULT update(uint64_t reflex_frame_id) { 
+        std::lock_guard<std::mutex> lock(update_mutex);
+
         update_config();
+
         log_event("update", "{}", reflex_frame_id);
         if (force_reflex == ForceReflex::ForceDisable || (force_reflex == ForceReflex::InGame && !active)) return S_FALSE;
 
