@@ -1,5 +1,4 @@
 #pragma once
-#include <unordered_set>
 
 #include <dxgi.h>
 #if _MSC_VER

@@ -606,23 +606,25 @@ namespace nvd {
                 break;
             case OUT_OF_BAND_PRESENT_START: {
                 log_event("async_marker_OUB_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
-                constexpr unsigned int history_size = 10;
-                static NvU64 counter = 0;
+                constexpr size_t history_size = 12;
+                static size_t counter = 0;
                 static NvU64 previous_frame_ids[history_size] = {};
                 current_frame_id = pSetAsyncFrameMarkerParams->frameID;
 
                 previous_frame_ids[counter%history_size] = current_frame_id;
                 counter++;
 
-                std::unordered_set<NvU64> seen;
-                unsigned int repeat_count = 0;
-                for (const NvU64& frame_id : previous_frame_ids) {
-                    if (seen.contains(frame_id)) repeat_count++;
-                    else seen.insert(frame_id);
+                int repeat_count = 0;
+
+                for (size_t i = 1; i < history_size; i++) {
+                    // won't catch repeat frame ids across array wrap around
+                    if (previous_frame_ids[i] == previous_frame_ids[i - 1]) {
+                        repeat_count++;
+                    }
                 }
 
                 if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
-                else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2) lowlatency_ctx.fg = true;
+                else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2 - 1) lowlatency_ctx.fg = true;
 
                 lowlatency_ctx.set_fg_type(previous_frame_id != current_frame_id, current_frame_id);
                 previous_frame_id = current_frame_id;
