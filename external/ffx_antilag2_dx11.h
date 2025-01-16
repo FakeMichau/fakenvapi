@@ -59,8 +59,10 @@ namespace AntiLag2DX11 {
 
     protected:
         IAmdDxExtInterface() {} // Default constructor disabled
-        virtual ~IAmdDxExtInterface() = 0 {}
+        virtual ~IAmdDxExtInterface() = 0;
     };
+
+    inline IAmdDxExtInterface::~IAmdDxExtInterface() {}
 
     // Structure version 1 for Anti-Lag 2.0:
     struct APIData_v1
@@ -99,7 +101,7 @@ namespace AntiLag2DX11 {
             if ( hModule )
             {
                 typedef HRESULT(__cdecl* PFNAmdDxExtCreate11)(ID3D11Device* pDevice, IAmdDxExtInterface** ppAntiLagApi);
-                PFNAmdDxExtCreate11 AmdDxExtCreate11 = static_cast<PFNAmdDxExtCreate11>((VOID*)GetProcAddress(hModule, "AmdDxExtCreate11"));
+                PFNAmdDxExtCreate11 AmdDxExtCreate11 = reinterpret_cast<PFNAmdDxExtCreate11>((VOID*)GetProcAddress(hModule, "AmdDxExtCreate11"));
                 if ( AmdDxExtCreate11 )
                 {
                     *(__int64*)&context->m_pAntiLagAPI = 0xbf380ebc5ab4d0a6; // sets up the request identifier

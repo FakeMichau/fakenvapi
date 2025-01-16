@@ -729,7 +729,7 @@ namespace nvd {
         return OK();
     }
 
-#if _MSC_VER && _WIN64
+#if _WIN64
     NvAPI_Status __cdecl Fake_GetAntiLagCtx(AMD::AntiLag2DX12::Context** al2_context) {
         if (al2_context == nullptr)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
