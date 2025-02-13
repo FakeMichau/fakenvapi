@@ -1,19 +1,19 @@
 #include "fakenvapi.h"
 
 namespace nvd {
-    NvAPI_Status __cdecl NvAPI_Initialize() {
+    bool Init() {
         if (!device_id) {
             IDXGIFactory1* factory = nullptr;
             if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&factory))) {
                 spdlog::error("Failed to create DXGI Factory");
-                return ERROR();
+                return false;
             }
 
             IDXGIAdapter1* adapter = nullptr;
             if (FAILED(factory->EnumAdapters1(0, &adapter))) {
                 spdlog::error("Failed to enumerate adapters");
                 factory->Release();
-                return ERROR();
+                return false;
             }
 
             DXGI_ADAPTER_DESC1 adapter_desc;
@@ -21,7 +21,7 @@ namespace nvd {
                 spdlog::error("Failed to get adapter description");
                 adapter->Release();
                 factory->Release();
-                return ERROR();
+                return false;
             }
 
             luid = adapter_desc.AdapterLuid;
@@ -35,6 +35,13 @@ namespace nvd {
 
             lowlatency_ctx.init_lfx();
         }
+
+        return true;
+    }
+
+    NvAPI_Status __cdecl NvAPI_Initialize() {
+        if (!Init())
+            return ERROR();
 
         return OK();
     }
@@ -100,6 +107,15 @@ namespace nvd {
         return OK();
     }
 
+    NvAPI_Status __cdecl NvAPI_GetDisplayDriverVersion(NvDisplayHandle hNvDisplay, NV_DISPLAY_DRIVER_VERSION *pVersion) {
+        if (!pVersion)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+
+        pVersion->drvVersion = 99999;
+        tonvss(pVersion->szBuildBranchString, "buildBranch");
+        tonvss(pVersion->szAdapterString, "NVIDIA GeForce RTX 4090");
+    }
+
     NvAPI_Status __cdecl NvAPI_GPU_CudaEnumComputeCapableGpus(NV_COMPUTE_GPU_TOPOLOGY* pComputeTopo) {
         auto compute_topoV1 = reinterpret_cast<NV_COMPUTE_GPU_TOPOLOGY_V1*>(pComputeTopo);
         compute_topoV1->gpuCount = 1;
@@ -126,6 +142,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetLogicalGpuInfo(NvLogicalGpuHandle logicalHandle, NV_LOGICAL_GPU_DATA* logicalGpuData) {
+        if (!Init())
+            return ERROR();
+
         memcpy(logicalGpuData->pOSAdapterId, &luid, sizeof(luid));
         logicalGpuData->physicalGpuHandles[0] = nullptr;
         logicalGpuData->physicalGpuCount = 1;
@@ -133,6 +152,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle hPhysicalGpu, NvU32* pDeviceId, NvU32* pSubSystemId, NvU32* pRevisionId, NvU32* pExtDeviceId) {
+        if (!Init())
+            return ERROR();
+
         *pDeviceId = (device_id << 16) | vendor_id;
         *pSubSystemId = subsystem_id;
         *pRevisionId = revision_id;
@@ -181,6 +203,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_GetAdapterIdFromPhysicalGpu(NvPhysicalGpuHandle hPhysicalGpu, void* pOSAdapterId) {
+        if (!Init())
+            return ERROR();
+
         memcpy(pOSAdapterId, &luid, sizeof(luid));
         return OK();
     }
@@ -308,6 +333,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
+        if (!Init())
+            return ERROR();
+
         if (pGetLatencyParams == nullptr)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
         
@@ -322,6 +350,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
+        if (!Init())
+            return ERROR();
+
         static bool previous_boost = false;
         if (lowlatency_ctx.active != pSetSleepModeParams->bLowLatencyMode || previous_boost != pSetSleepModeParams->bLowLatencyBoost) {
             spdlog::info(
@@ -337,6 +368,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+        if (!Init())
+            return ERROR();
+
         if (!pDev)
             return ERROR();
 
@@ -404,6 +438,9 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
+        if (!Init())
+            return ERROR();
+            
         if (!pDevice)
             return ERROR();
 

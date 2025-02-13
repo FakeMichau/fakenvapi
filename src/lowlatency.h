@@ -381,7 +381,10 @@ public:
         if (al2_dx11_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&al2_dx11_ctx))
             spdlog::info("AntiLag 2 DX11 deinitialized");
 #endif
-        free(lfx_ctx);
+        if (lfx_ctx) {
+            delete lfx_ctx;
+            lfx_ctx = nullptr;
+        }
         spdlog::info("LatencyFlex deinitialized");
     }
 

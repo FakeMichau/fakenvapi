@@ -101,6 +101,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUsFromDisplay)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUsFromLogicalGPU)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetErrorMessage)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetDisplayDriverVersion)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetLogicalGpuInfo)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetConnectedDisplayIds)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_CudaEnumComputeCapableGpus)
