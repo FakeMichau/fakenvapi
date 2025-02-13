@@ -7,7 +7,7 @@
 #include "../external/d3d12.h"
 #endif
 
-#if _MSC_VER && _WIN64
+#if _WIN64
 #include "../external/ffx_antilag2_dx12.h"
 #include "../external/ffx_antilag2_dx11.h"
 #endif
@@ -57,7 +57,7 @@ struct FrameReport {
 };
 
 class LowLatency {
-#if _MSC_VER && _WIN64
+#if _WIN64
     Mode mode = Mode::AntiLag2;
 #else
     Mode mode = Mode::LatencyFlex;
@@ -118,7 +118,7 @@ class LowLatency {
     }
 
 public:
-#if _MSC_VER && _WIN64
+#if _WIN64
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
     AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
 #endif
@@ -132,7 +132,7 @@ public:
     bool active = true;
 
     inline void init_al2(IUnknown *pDevice) {
-#if _MSC_VER && _WIN64
+#if _WIN64
         if (mode == Mode::AntiLag2 && !al2_dx12_ctx.m_pAntiLagAPI && !al2_dx11_ctx.m_pAntiLagAPI) {
             ID3D12Device* device = nullptr;
             HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&device));
@@ -211,7 +211,7 @@ public:
         spdlog::debug("FG status: {}", effective_fg_state ? "enabled" : "disabled");
 
         if (mode == Mode::AntiLag2) {
-#if _MSC_VER && _WIN64
+#if _WIN64
             if (lfx_stats.frame_id != 1) lfx_stats.needs_reset = true;
             int max_fps = 0; 
             if ((fg || forced_fg) && min_interval_us != 0) {
@@ -288,7 +288,7 @@ public:
     }
 
     inline HRESULT set_fg_type(bool interpolated, uint64_t reflex_frame_id) {
-#if _MSC_VER && _WIN64
+#if _WIN64
         if (fg || forced_fg) {
             log_event("al2_set_fg_type", "{}", reflex_frame_id);
             return AMD::AntiLag2DX12::SetFrameGenFrameType(&al2_dx12_ctx, interpolated);
@@ -298,7 +298,7 @@ public:
     }
 
     inline HRESULT mark_end_of_rendering(uint64_t reflex_frame_id) {
-#if _MSC_VER && _WIN64
+#if _WIN64
         if (fg || forced_fg) {
             log_event("al2_end_of_rendering", "{}", reflex_frame_id);
             return AMD::AntiLag2DX12::MarkEndOfFrameRendering(&al2_dx12_ctx);
@@ -375,13 +375,16 @@ public:
     }
 
     inline void unload() {
-#if _MSC_VER && _WIN64
+#if _WIN64
         if (al2_dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&al2_dx12_ctx))
             spdlog::info("AntiLag 2 DX12 deinitialized");
         if (al2_dx11_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX11::DeInitialize(&al2_dx11_ctx))
             spdlog::info("AntiLag 2 DX11 deinitialized");
 #endif
-        free(lfx_ctx);
+        if (lfx_ctx) {
+            delete lfx_ctx;
+            lfx_ctx = nullptr;
+        }
         spdlog::info("LatencyFlex deinitialized");
     }
 

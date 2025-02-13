@@ -21,6 +21,17 @@
 
 #pragma once
 
+#include <unknwn.h>
+#include <objbase.h>
+#include <initguid.h>
+
+#ifndef MIDL_INTERFACE
+#define MIDL_INTERFACE(x) struct __declspec(uuid(x)) __declspec(novtable)
+#endif
+
+DEFINE_GUID(IID_IAmdExtAntiLagApi, 
+    0x44085fbe, 0xe839, 0x40c5, 0xbf, 0x38, 0x0e, 0xbc, 0x5a, 0xb4, 0xd0, 0xa6);
+
 namespace AMD {
 namespace AntiLag2DX12 {
 
@@ -122,10 +133,10 @@ namespace AntiLag2DX12 {
             if ( hModule )
             {
                 typedef HRESULT(__cdecl* PFNAmdExtD3DCreateInterface)( IUnknown* pOuter, REFIID riid, void** ppvObject );
-                PFNAmdExtD3DCreateInterface AmdExtD3DCreateInterface = static_cast<PFNAmdExtD3DCreateInterface>( (VOID*)GetProcAddress(hModule, "AmdExtD3DCreateInterface") );
+                PFNAmdExtD3DCreateInterface AmdExtD3DCreateInterface = reinterpret_cast<PFNAmdExtD3DCreateInterface>( (VOID*)GetProcAddress(hModule, "AmdExtD3DCreateInterface") );
                 if ( AmdExtD3DCreateInterface )
                 {
-                    hr = AmdExtD3DCreateInterface( device, __uuidof(IAmdExtAntiLagApi), (void**)&context->m_pAntiLagAPI );
+                    hr = AmdExtD3DCreateInterface( device, IID_IAmdExtAntiLagApi, (void**)&context->m_pAntiLagAPI );
                     if ( hr == S_OK && context->m_pAntiLagAPI )
                     {
                         APIData_v1 data = {};

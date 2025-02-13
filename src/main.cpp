@@ -101,6 +101,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUsFromDisplay)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetPhysicalGPUsFromLogicalGPU)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetErrorMessage)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GetDisplayDriverVersion)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetLogicalGpuInfo)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_GetConnectedDisplayIds)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_GPU_CudaEnumComputeCapableGpus)
@@ -159,7 +160,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLatency)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformFGState)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformPresentFG)
-#if _MSC_VER && _WIN64
+#if _WIN64
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetAntiLagCtx)
 #endif
 
