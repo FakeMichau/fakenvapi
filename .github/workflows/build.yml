@@ -25,5 +25,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dxvk-nvapi-master
+          name: fakenvapi-${{ github.ref_name }}
           path: build/fakenvapi-master
