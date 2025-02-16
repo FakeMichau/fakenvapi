@@ -24,6 +24,8 @@ namespace nvd {
     static UINT subsystem_id = {};
     static UINT revision_id = {};
 
+    static std::atomic_uint ref_count = 0;
+
     static LowLatency lowlatency_ctx;
 
     NvAPI_Status __cdecl NvAPI_Initialize();

@@ -375,6 +375,7 @@ public:
     }
 
     inline void unload() {
+        spdlog::info("Unloading lowlatency");
 #if _WIN64
         if (al2_dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&al2_dx12_ctx))
             spdlog::info("AntiLag 2 DX12 deinitialized");

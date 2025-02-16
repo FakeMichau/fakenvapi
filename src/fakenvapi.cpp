@@ -40,6 +40,8 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Initialize() {
+        ref_count++;
+        
         if (!Init())
             return ERROR();
 
@@ -741,7 +743,12 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Unload() {
-        lowlatency_ctx.unload();
+        if(ref_count.load() > 0)
+            ref_count--;
+        
+        if(ref_count.load() == 0)
+            lowlatency_ctx.unload();
+
         return OK();
     }
 
