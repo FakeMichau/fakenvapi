@@ -3,8 +3,11 @@ Project inspired by/based on [dxvk-nvapi](https://github.com/jp7677/dxvk-nvapi/)
 By default logging is disabled. To enable logging put [fakenvapi.ini](fakenvapi.ini) next to the exe and edit the config
 
 # Installation
-For non frame generation setup use [OptiScaler](https://github.com/cdozdil/OptiScaler/blob/master/Spoofing.md#nvapi).
-For frame generation use [DLSS Enabler](https://github.com/artur-graniszewski/DLSS-Enabler)
+**Do not use on Nvidia cards unless you know what you are doing**
+
+Best to use [OptiScaler](https://github.com/cdozdil/OptiScaler/blob/master/Spoofing.md#nvapi) as a loader for fakenvapi and all the required GPU spoofing. 
+
+Just put `nvapi64.dll` next to OptiScaler's dll and fakenvapi will be automatically loaded. If it doesn't then set ``OverrideNvapiDll=true`` in Optiscaler's config file. 
 
 # Overview
 Supports [LatencyFlex](https://github.com/ishitatsuyuki/LatencyFleX) as well as [AntiLag 2](https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK).
