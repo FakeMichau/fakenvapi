@@ -13,6 +13,7 @@
 #endif
 
 #include "../external/latencyflex.h"
+#include <xell_d3d12.h>
 
 #include "log.h"
 #include "config.h"
@@ -20,6 +21,7 @@
 enum class Mode {
     AntiLag2,
     LatencyFlex,
+    XeLL
 };
 
 enum class CallSpot {
@@ -62,13 +64,17 @@ class LowLatency {
 #else
     Mode mode = Mode::LatencyFlex;
 #endif
-    lfx::LatencyFleX *lfx_ctx = nullptr;
     std::mutex lfx_mutex;
     std::mutex update_mutex;
+
     unsigned long min_interval_us = 0;
+    ForceReflex force_reflex = ForceReflex::InGame;
+
+    lfx::LatencyFleX *lfx_ctx = nullptr;
+    xell_context_handle_t xell_ctx = nullptr;
+    bool xell_available = false;
     bool al_available = false;
     bool force_latencyflex = false;
-    ForceReflex force_reflex = ForceReflex::InGame;
 
     static constexpr uint64_t pcl_max_inprogress_frames = 16;
     uint64_t pcl_start_timestamps[pcl_max_inprogress_frames] = {};
@@ -117,6 +123,67 @@ class LowLatency {
         return status;
     }
 
+    void report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+        auto current_timestamp = get_timestamp() / 1000;
+        static auto last_sim_start = current_timestamp;
+        static auto _2nd_last_sim_start = current_timestamp;
+        auto current_report = &frame_reports[pSetLatencyMarkerParams->frameID % 64];
+        current_report->frameID = pSetLatencyMarkerParams->frameID;
+        current_report->gpuFrameTimeUs = last_sim_start - _2nd_last_sim_start;
+        current_report->gpuActiveRenderTimeUs = 100;
+        current_report->driverStartTime = current_timestamp;
+        current_report->driverEndTime = current_timestamp + 100;
+        current_report->gpuRenderStartTime = current_timestamp;
+        current_report->gpuRenderEndTime = current_timestamp + 100;
+        current_report->osRenderQueueStartTime = current_timestamp;
+        current_report->osRenderQueueEndTime = current_timestamp + 100;
+        switch (pSetLatencyMarkerParams->markerType) {
+            case SIMULATION_START:
+                _2nd_last_sim_start = last_sim_start;
+                last_sim_start = get_timestamp() / 1000;
+                current_report->simStartTime = last_sim_start;
+                break;
+            case SIMULATION_END:
+                current_report->simEndTime = get_timestamp() / 1000;
+                break;
+            case RENDERSUBMIT_START:
+                current_report->renderSubmitStartTime = get_timestamp() / 1000;
+                break;
+            case RENDERSUBMIT_END:
+                current_report->renderSubmitEndTime = get_timestamp() / 1000;
+                break;
+            case PRESENT_START:
+                current_report->presentStartTime = get_timestamp() / 1000;
+                break;
+            case PRESENT_END:
+                current_report->presentEndTime = get_timestamp() / 1000;
+                break;
+            case INPUT_SAMPLE:
+                current_report->inputSampleTime = get_timestamp() / 1000;
+                break;
+            default:
+                break;
+        }
+    }
+
+    std::string get_algorithm_name() {
+        std::string algo;
+
+        switch (mode) {
+        case Mode::AntiLag2:
+            algo = "AntiLag 2";
+            break;
+        case Mode::LatencyFlex:
+            algo = "LatencyFlex";
+            break;
+        case Mode::XeLL:
+            algo = "XeLL";
+            break;
+        }
+
+        return algo;
+    }
+
 public:
 #if _WIN64
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
@@ -139,7 +206,7 @@ public:
             if (hr == S_OK) {
                 HRESULT init_return = AMD::AntiLag2DX12::Initialize(&al2_dx12_ctx, device);
                 if (al_available = init_return == S_OK; !al_available) {
-                    mode = Mode::LatencyFlex;
+                    mode = Mode::XeLL;
                     spdlog::info("AntiLag 2 DX12 initialization failed");
                 } else {
                     spdlog::info("AntiLag 2 DX12 initialized");
@@ -147,7 +214,7 @@ public:
             } else {
                 HRESULT init_return = AMD::AntiLag2DX11::Initialize(&al2_dx11_ctx);
                 if (al_available = init_return == S_OK; !al_available) {
-                    mode = Mode::LatencyFlex;
+                    mode = Mode::XeLL;
                     spdlog::info("AntiLag 2 DX11 initialization failed");
                 } else {
                     spdlog::info("AntiLag 2 DX11 initialized");
@@ -159,10 +226,26 @@ public:
 #endif
     }
 
-    inline void update_config() {
-        force_latencyflex = Config::get().get_force_latencyflex();
-        force_reflex = Config::get().get_force_reflex();
-        lfx_mode = Config::get().get_latencyflex_mode();
+    inline void init_xell(IUnknown* pDevice) {
+        if (!pDevice || xell_ctx || mode != Mode::XeLL)
+            return;
+
+        ID3D12Device* dx12_pDevice = nullptr;
+        HRESULT hr = pDevice->QueryInterface(__uuidof(ID3D12Device), reinterpret_cast<void**>(&dx12_pDevice));
+        if (hr != S_OK)
+            return;
+
+        auto result = xellD3D12CreateContext(dx12_pDevice, &xell_ctx);
+
+        if (result == XELL_RESULT_SUCCESS) {
+            mode = Mode::XeLL;
+            xell_available = true;
+        }
+        else {
+            mode = Mode::LatencyFlex;
+        }
+
+        spdlog::info("XeLL init result: {}", (int32_t)result);
     }
 
     void init_lfx() {
@@ -171,6 +254,12 @@ public:
             update_config();
             spdlog::info("LatencyFleX initialized");
         }
+    }
+
+    inline void update_config() {
+        force_latencyflex = Config::get().get_force_latencyflex();
+        force_reflex = Config::get().get_force_reflex();
+        lfx_mode = Config::get().get_latencyflex_mode();
     }
 
     inline HRESULT update(uint64_t reflex_frame_id) { 
@@ -186,13 +275,16 @@ public:
         static bool previous_fg_status = effective_fg_state;
         static LFXMode previous_lfx_mode = lfx_mode;
 
+
         if (al_available && !force_latencyflex) 
             mode = Mode::AntiLag2;
-        else 
+        else if (xell_available && !force_latencyflex)
+            mode = Mode::XeLL;
+        else
             mode = Mode::LatencyFlex;
 
         if (previous_mode != mode) {
-            spdlog::debug("Changed low latency algorithm to: {}", mode == Mode::AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+            spdlog::debug("Changed low latency algorithm to: {}", get_algorithm_name());
             if (mode == Mode::LatencyFlex)
                 lfx_stats.needs_reset = true;
         }
@@ -207,7 +299,7 @@ public:
             lfx_stats.needs_reset = true;
         previous_lfx_mode = lfx_mode;
 
-        spdlog::debug("LowLatency algo: {}", mode == Mode::AntiLag2 ? "AntiLag 2" : "LatencyFlex");
+        spdlog::debug("LowLatency algo: {}", get_algorithm_name());
         spdlog::debug("FG status: {}", effective_fg_state ? "enabled" : "disabled");
 
         if (mode == Mode::AntiLag2) {
@@ -283,6 +375,10 @@ public:
             lfx_mutex.unlock();
             
             return S_OK;
+        } else if (mode == Mode::XeLL) {
+            xellSleep(xell_ctx, reflex_frame_id);
+
+            return S_OK;
         }
         return S_FALSE;
     }
@@ -331,46 +427,107 @@ public:
         }
     }
 
-    void report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
-        auto current_timestamp = get_timestamp() / 1000;
-        static auto last_sim_start = current_timestamp;
-        static auto _2nd_last_sim_start = current_timestamp;
-        auto current_report = &frame_reports[pSetLatencyMarkerParams->frameID % 64];
-        current_report->frameID = pSetLatencyMarkerParams->frameID;
-        current_report->gpuFrameTimeUs = last_sim_start - _2nd_last_sim_start;
-        current_report->gpuActiveRenderTimeUs = 100;
-        current_report->driverStartTime = current_timestamp;
-        current_report->driverEndTime = current_timestamp + 100;
-        current_report->gpuRenderStartTime = current_timestamp;
-        current_report->gpuRenderEndTime = current_timestamp + 100;
-        current_report->osRenderQueueStartTime = current_timestamp;
-        current_report->osRenderQueueEndTime = current_timestamp + 100;
+    void xell_set_sleep(NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
+        xell_sleep_params_t sleep_params{};
+        sleep_params.minimumIntervalUs = pSetSleepModeParams->minimumIntervalUs;
+        sleep_params.bLowLatencyMode = pSetSleepModeParams->bLowLatencyMode;
+        sleep_params.bLowLatencyBoost = pSetSleepModeParams->bLowLatencyBoost;
+        
+        xellSetSleepMode(xell_ctx, &sleep_params);
+    }
+
+    void handle_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+        report_marker(pSetLatencyMarkerParams);
+
+        static std::thread::id simulation_start_thread = {};
+
         switch (pSetLatencyMarkerParams->markerType) {
-            case SIMULATION_START:
-                _2nd_last_sim_start = last_sim_start;
-                last_sim_start = get_timestamp() / 1000;
-                current_report->simStartTime = last_sim_start;
-                break;
-            case SIMULATION_END:
-                current_report->simEndTime = get_timestamp() / 1000;
-                break;
-            case RENDERSUBMIT_START:
-                current_report->renderSubmitStartTime = get_timestamp() / 1000;
-                break;
-            case RENDERSUBMIT_END:
-                current_report->renderSubmitEndTime = get_timestamp() / 1000;
-                break;
-            case PRESENT_START:
-                current_report->presentStartTime = get_timestamp() / 1000;
-                break;
-            case PRESENT_END:
-                current_report->presentEndTime = get_timestamp() / 1000;
-                break;
-            case INPUT_SAMPLE:
-                current_report->inputSampleTime = get_timestamp() / 1000;
-                break;
-            default:
-                break;
+        case SIMULATION_START:
+            log_event("marker_SIMULATION_START", "{}", pSetLatencyMarkerParams->frameID);
+
+            pcl_start(pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_SIMULATION_START);
+
+            simulation_start_thread = std::this_thread::get_id();
+
+            if (call_spot == CallSpot::SleepCall) {
+                calls_without_sleep++;
+                if (calls_without_sleep > 10)
+                    call_spot = CallSpot::SimulationStart;
+            }
+
+            if (call_spot != CallSpot::SimulationStart) break;
+
+            spdlog::debug("LowLatency update called on simulation start with result: {}", update(pSetLatencyMarkerParams->frameID));
+
+            break;
+        case SIMULATION_END:
+            log_event("marker_SIMULATION_END", "{}", pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_SIMULATION_END);
+
+            break;
+        case RENDERSUBMIT_START:
+            log_event("marker_RENDERSUBMIT_START", "{}", pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_RENDERSUBMIT_START);
+
+            break;
+        case RENDERSUBMIT_END:
+            log_event("marker_RENDERSUBMIT_END", "{}", pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_RENDERSUBMIT_END);
+
+            if (!fg)
+                pcl_end(pSetLatencyMarkerParams->frameID);
+
+            if (get_mode() == Mode::LatencyFlex && lfx_mode != LFXMode::Conservative) {
+                if (std::this_thread::get_id() == simulation_start_thread) {
+                    static bool logged = false;
+                    if (!logged)
+                        spdlog::info("Falling back to LFX Aggressive");
+                    logged = true;
+                    lfx_mode = LFXMode::Aggressive;
+                } else {
+                    lfx_end_frame(pSetLatencyMarkerParams->frameID);
+                }
+            }
+            break;
+        case PRESENT_START:
+            log_event("marker_PRESENT_START", "{}", pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_PRESENT_START);
+
+            mark_end_of_rendering(pSetLatencyMarkerParams->frameID);
+
+            break;
+        case PRESENT_END:
+            log_event("marker_PRESENT_END", "{}", pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_PRESENT_END);
+
+            break;
+        case INPUT_SAMPLE:
+            log_event("marker_INPUT_SAMPLE", "{}", pSetLatencyMarkerParams->frameID);
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_INPUT_SAMPLE);
+
+            if (call_spot == CallSpot::SleepCall) break;
+            call_spot = CallSpot::InputSample;
+            spdlog::debug("LowLatency update called on input sample with result: {}", update(pSetLatencyMarkerParams->frameID));
+
+            break;
+        default:
+            log_event("marker_other", "{}", pSetLatencyMarkerParams->frameID);
+            break;
+        }
+    }
+
+    void sleep_called() {
+        if (mode != Mode::XeLL) {
+            call_spot = CallSpot::SleepCall;
+            calls_without_sleep = 0;
         }
     }
 
@@ -385,8 +542,14 @@ public:
         if (lfx_ctx) {
             delete lfx_ctx;
             lfx_ctx = nullptr;
+            spdlog::info("LatencyFlex deinitialized");
         }
-        spdlog::info("LatencyFlex deinitialized");
+
+        if (xell_ctx) {
+            xellDestroyContext(xell_ctx);
+            xell_ctx = nullptr;
+            spdlog::info("XeLL deinitialized");
+        }
     }
 
     void set_min_interval_us(unsigned long interval_us) {

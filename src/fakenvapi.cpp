@@ -116,6 +116,7 @@ namespace nvd {
         pVersion->drvVersion = 99999;
         tonvss(pVersion->szBuildBranchString, "buildBranch");
         tonvss(pVersion->szAdapterString, "NVIDIA GeForce RTX 4090");
+        return OK();
     }
 
     NvAPI_Status __cdecl NvAPI_GPU_CudaEnumComputeCapableGpus(NV_COMPUTE_GPU_TOPOLOGY* pComputeTopo) {
@@ -366,6 +367,9 @@ namespace nvd {
             previous_boost = pSetSleepModeParams->bLowLatencyBoost;
         }
         lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
+
+        lowlatency_ctx.xell_set_sleep(pSetSleepModeParams);
+
         return OK();
     }
 
@@ -377,65 +381,10 @@ namespace nvd {
             return ERROR();
 
         lowlatency_ctx.init_al2(pDev);
+        lowlatency_ctx.init_xell(pDev);
 
-        lowlatency_ctx.report_marker(pSetLatencyMarkerParams);
+        lowlatency_ctx.handle_marker(pSetLatencyMarkerParams);
 
-        static std::thread::id simulation_start_thread = {};
-
-        switch (pSetLatencyMarkerParams->markerType) {
-        case SIMULATION_START:
-            log_event("marker_SIMULATION_START", "{}", pSetLatencyMarkerParams->frameID);
-            lowlatency_ctx.pcl_start(pSetLatencyMarkerParams->frameID);
-            simulation_start_thread = std::this_thread::get_id();
-            if (lowlatency_ctx.call_spot == CallSpot::SleepCall) {
-                lowlatency_ctx.calls_without_sleep++;
-                if (lowlatency_ctx.calls_without_sleep > 10)
-                    lowlatency_ctx.call_spot = CallSpot::SimulationStart;
-            }
-            if (lowlatency_ctx.call_spot != CallSpot::SimulationStart) break;
-            spdlog::debug("LowLatency update called on simulation start with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
-            break;
-        case SIMULATION_END:
-            log_event("marker_SIMULATION_END", "{}", pSetLatencyMarkerParams->frameID);
-            break;
-        case RENDERSUBMIT_START:
-            log_event("marker_RENDERSUBMIT_START", "{}", pSetLatencyMarkerParams->frameID);
-            break;
-        case RENDERSUBMIT_END:
-            log_event("marker_RENDERSUBMIT_END", "{}", pSetLatencyMarkerParams->frameID);
-
-            if (!lowlatency_ctx.fg)
-                lowlatency_ctx.pcl_end(pSetLatencyMarkerParams->frameID);
-
-            if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.lfx_mode != LFXMode::Conservative) {
-                if (std::this_thread::get_id() == simulation_start_thread) {
-                    static bool logged = false;
-                    if (!logged)
-                        spdlog::info("Falling back to LFX Aggressive");
-                    logged = true;
-                    lowlatency_ctx.lfx_mode = LFXMode::Aggressive;
-                } else {
-                    lowlatency_ctx.lfx_end_frame(pSetLatencyMarkerParams->frameID);
-                }
-            }
-            break;
-        case PRESENT_START:
-            log_event("marker_PRESENT_START", "{}", pSetLatencyMarkerParams->frameID);
-            lowlatency_ctx.mark_end_of_rendering(pSetLatencyMarkerParams->frameID);
-            break;
-        case PRESENT_END:
-            log_event("marker_PRESENT_END", "{}", pSetLatencyMarkerParams->frameID);
-            break;
-        case INPUT_SAMPLE:
-            log_event("marker_INPUT_SAMPLE", "{}", pSetLatencyMarkerParams->frameID);
-            if (lowlatency_ctx.call_spot == CallSpot::SleepCall) break;
-            lowlatency_ctx.call_spot = CallSpot::InputSample;
-            spdlog::debug("LowLatency update called on input sample with result: {}", lowlatency_ctx.update(pSetLatencyMarkerParams->frameID));
-            break;
-        default:
-            log_event("marker_other", "{}", pSetLatencyMarkerParams->frameID);
-            break;
-        }
         return OK();
     }
 
@@ -450,8 +399,9 @@ namespace nvd {
             return OK();
 
         lowlatency_ctx.init_al2(pDevice);
-        lowlatency_ctx.call_spot = CallSpot::SleepCall;
-        lowlatency_ctx.calls_without_sleep = 0;
+        lowlatency_ctx.init_xell(pDevice);
+
+        lowlatency_ctx.sleep_called();
         spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update(0));
         return OK();
     }

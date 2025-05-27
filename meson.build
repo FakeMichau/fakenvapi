@@ -23,6 +23,12 @@ compiler_args = [
 ]
 
 spdlog_headers = include_directories('./external/spdlog/include')
+xell_headers = include_directories('./external/xell/inc')
+
+lib_xell = declare_dependency(
+    include_directories: xell_headers,
+    link_args: [meson.current_source_dir() / 'external/xell/lib/libxell.lib']
+)
 
 windows = import('windows')
 
@@ -30,7 +36,7 @@ rc_file = configure_file(
   input: 'resource.rc.in',
   output: 'resource.rc',
   configuration: {
-    'FILEVERSION': '1,2,1,0',
+    'FILEVERSION': '1,3,0,0',
   }
 )
 
