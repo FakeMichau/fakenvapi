@@ -58,23 +58,6 @@ struct FrameReport {
     NvU8 rsvd[120];
 };
 
-void xell_logging(const char* message, xell_logging_level_t loggingLevel) {
-    switch (loggingLevel) {
-        case XELL_LOGGING_LEVEL_DEBUG:
-            spdlog::debug("XeLL: {}", message);
-        break;
-        case XELL_LOGGING_LEVEL_INFO:
-            spdlog::info("XeLL: {}", message);
-        break;
-        case XELL_LOGGING_LEVEL_WARNING:
-            spdlog::warn("XeLL: {}", message);
-        break;
-        case XELL_LOGGING_LEVEL_ERROR:
-            spdlog::error("XeLL: {}", message);
-        break;
-    }
-}
-
 class LowLatency {
 #if _WIN64
     Mode mode = Mode::AntiLag2;
@@ -257,7 +240,22 @@ public:
         if (result == XELL_RESULT_SUCCESS && xell_ctx) {
             mode = Mode::XeLL;
             xell_available = true;
-            xellSetLoggingCallback(xell_ctx, XELL_LOGGING_LEVEL_DEBUG, xell_logging);
+            xellSetLoggingCallback(xell_ctx, XELL_LOGGING_LEVEL_DEBUG, [](const char* message, xell_logging_level_t loggingLevel) {
+                switch (loggingLevel) {
+                    case XELL_LOGGING_LEVEL_DEBUG:
+                        spdlog::debug("XeLL: {}", message);
+                    break;
+                    case XELL_LOGGING_LEVEL_INFO:
+                        spdlog::info("XeLL: {}", message);
+                    break;
+                    case XELL_LOGGING_LEVEL_WARNING:
+                        spdlog::warn("XeLL: {}", message);
+                    break;
+                    case XELL_LOGGING_LEVEL_ERROR:
+                        spdlog::error("XeLL: {}", message);
+                    break;
+                }
+            });
         }
         else {
             mode = Mode::LatencyFlex;
