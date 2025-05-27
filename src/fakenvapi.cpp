@@ -342,6 +342,7 @@ namespace nvd {
         if (pGetLatencyParams == nullptr)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
         
+        // xellGetFramesReports() currently doesn't give any extra data that we can't already get
         memcpy(&pGetLatencyParams->frameReport, &lowlatency_ctx.frame_reports, sizeof(lowlatency_ctx.frame_reports));
 
         // FrameReport* frame_reports = reinterpret_cast<FrameReport*>(pGetLatencyParams->frameReport);

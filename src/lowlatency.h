@@ -58,6 +58,23 @@ struct FrameReport {
     NvU8 rsvd[120];
 };
 
+void xell_logging(const char* message, xell_logging_level_t loggingLevel) {
+    switch (loggingLevel) {
+        case XELL_LOGGING_LEVEL_DEBUG:
+            spdlog::debug("XeLL: {}", message);
+        break;
+        case XELL_LOGGING_LEVEL_INFO:
+            spdlog::info("XeLL: {}", message);
+        break;
+        case XELL_LOGGING_LEVEL_WARNING:
+            spdlog::warn("XeLL: {}", message);
+        break;
+        case XELL_LOGGING_LEVEL_ERROR:
+            spdlog::error("XeLL: {}", message);
+        break;
+    }
+}
+
 class LowLatency {
 #if _WIN64
     Mode mode = Mode::AntiLag2;
@@ -71,7 +88,6 @@ class LowLatency {
     ForceReflex force_reflex = ForceReflex::InGame;
 
     lfx::LatencyFleX *lfx_ctx = nullptr;
-    xell_context_handle_t xell_ctx = nullptr;
     bool xell_available = false;
     bool al_available = false;
     bool force_latencyflex = false;
@@ -189,6 +205,7 @@ public:
     AMD::AntiLag2DX12::Context al2_dx12_ctx = {};
     AMD::AntiLag2DX11::Context al2_dx11_ctx = {};
 #endif
+    xell_context_handle_t xell_ctx = nullptr;
     CallSpot call_spot = CallSpot::SleepCall;
     LFXStats lfx_stats = {};
     LFXMode lfx_mode = {};
@@ -237,9 +254,10 @@ public:
 
         auto result = xellD3D12CreateContext(dx12_pDevice, &xell_ctx);
 
-        if (result == XELL_RESULT_SUCCESS) {
+        if (result == XELL_RESULT_SUCCESS && xell_ctx) {
             mode = Mode::XeLL;
             xell_available = true;
+            xellSetLoggingCallback(xell_ctx, XELL_LOGGING_LEVEL_DEBUG, xell_logging);
         }
         else {
             mode = Mode::LatencyFlex;
@@ -376,7 +394,8 @@ public:
             
             return S_OK;
         } else if (mode == Mode::XeLL) {
-            xellSleep(xell_ctx, reflex_frame_id);
+            if (reflex_frame_id > 0) // XeLL needs a valid frame_id but NvAPI_D3D_Sleep doesn't provide that
+                xellSleep(xell_ctx, reflex_frame_id);
 
             return S_OK;
         }
@@ -447,8 +466,6 @@ public:
 
             pcl_start(pSetLatencyMarkerParams->frameID);
 
-            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_SIMULATION_START);
-
             simulation_start_thread = std::this_thread::get_id();
 
             if (call_spot == CallSpot::SleepCall) {
@@ -460,6 +477,8 @@ public:
             if (call_spot != CallSpot::SimulationStart) break;
 
             spdlog::debug("LowLatency update called on simulation start with result: {}", update(pSetLatencyMarkerParams->frameID));
+
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_SIMULATION_START);
 
             break;
         case SIMULATION_END:
@@ -511,11 +530,17 @@ public:
         case INPUT_SAMPLE:
             log_event("marker_INPUT_SAMPLE", "{}", pSetLatencyMarkerParams->frameID);
 
-            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_INPUT_SAMPLE);
+            if (call_spot == CallSpot::SleepCall) {
+                xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_INPUT_SAMPLE);
+                break;
+            }
 
-            if (call_spot == CallSpot::SleepCall) break;
             call_spot = CallSpot::InputSample;
+
             spdlog::debug("LowLatency update called on input sample with result: {}", update(pSetLatencyMarkerParams->frameID));
+
+            // in case we are calling xell update from here, sleep needs to happen before any other markers
+            xellAddMarkerData(xell_ctx, pSetLatencyMarkerParams->frameID, XELL_INPUT_SAMPLE);
 
             break;
         default:
