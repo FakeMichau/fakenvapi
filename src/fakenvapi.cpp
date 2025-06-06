@@ -403,7 +403,7 @@ namespace nvd {
         lowlatency_ctx.init_xell(pDevice);
 
         lowlatency_ctx.sleep_called();
-        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update(0));
+        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update(INVALID_ID));
         return OK();
     }
 
