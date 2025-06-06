@@ -60,7 +60,7 @@ struct FrameReport {
 
 #define INVALID_ID 0xFFFFFFFFFFFFFFFF
 
-class LowLatency {
+class LowLatencyOld {
 #if _WIN64
     Mode mode = Mode::AntiLag2;
 #else

@@ -34,7 +34,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
         spdlog::info("Config save_pcl_to_file: {}", Config::get().get_save_pcl_to_file() ? "true" : "false");
         break;
     case DLL_PROCESS_DETACH:
-        nvd::lowlatency_ctx.unload();
+        nvd::lowlatency_ctx.deinit_current_tech();
         close_logging();
         break;
     }
@@ -160,9 +160,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLatency)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformFGState)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformPresentFG)
-#if _WIN64
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetAntiLagCtx)
-#endif
 
             spdlog::debug("{}: not implemented, placeholder given", it->func);
             return registry.insert({ id, (void*)placeholder }).first->second;

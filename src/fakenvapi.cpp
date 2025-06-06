@@ -32,8 +32,6 @@ namespace nvd {
 
             adapter->Release();
             factory->Release();
-
-            lowlatency_ctx.init_lfx();
         }
 
         return true;
@@ -329,9 +327,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams) {
-        pGetSleepStatusParams->bLowLatencyMode = lowlatency_ctx.active;
-        pGetSleepStatusParams->bFsVrr = true;
-        pGetSleepStatusParams->bCplVsyncOn = true;
+        lowlatency_ctx.GetSleepStatus(pDevice, pGetSleepStatusParams);
         return OK();
     }
 
@@ -343,12 +339,7 @@ namespace nvd {
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
         
         // xellGetFramesReports() currently doesn't give any extra data that we can't already get
-        memcpy(&pGetLatencyParams->frameReport, &lowlatency_ctx.frame_reports, sizeof(lowlatency_ctx.frame_reports));
-
-        // FrameReport* frame_reports = reinterpret_cast<FrameReport*>(pGetLatencyParams->frameReport);
-        // std::sort(frame_reports, frame_reports + 64, [](const FrameReport &a, const FrameReport &b) {
-        //     return a.frameID < b.frameID;
-        // });
+        lowlatency_ctx.get_latency_result(pGetLatencyParams);
 
         return OK();
     }
@@ -357,21 +348,7 @@ namespace nvd {
         if (!Init())
             return ERROR();
 
-        static bool previous_boost = false;
-        if (lowlatency_ctx.active != pSetSleepModeParams->bLowLatencyMode || previous_boost != pSetSleepModeParams->bLowLatencyBoost) {
-            spdlog::info(
-                "Changed reflex settings to: {}, boost: {}", 
-                pSetSleepModeParams->bLowLatencyMode ? "enabled" : "disabled", 
-                pSetSleepModeParams->bLowLatencyBoost ? "enabled" : "disabled"
-            );
-            lowlatency_ctx.active = pSetSleepModeParams->bLowLatencyMode;
-            previous_boost = pSetSleepModeParams->bLowLatencyBoost;
-        }
-        lowlatency_ctx.set_min_interval_us(pSetSleepModeParams->minimumIntervalUs);
-
-        lowlatency_ctx.xell_set_sleep(pSetSleepModeParams);
-
-        return OK();
+        return lowlatency_ctx.SetSleepMode(pDevice, pSetSleepModeParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
@@ -381,12 +358,7 @@ namespace nvd {
         if (!pDev)
             return ERROR();
 
-        lowlatency_ctx.init_al2(pDev);
-        lowlatency_ctx.init_xell(pDev);
-
-        lowlatency_ctx.handle_marker(pSetLatencyMarkerParams);
-
-        return OK();
+        return lowlatency_ctx.SetLatencyMarker(pDev, pSetLatencyMarkerParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
@@ -396,15 +368,7 @@ namespace nvd {
         if (!pDevice)
             return ERROR();
 
-        if (lowlatency_ctx.get_mode() == Mode::LatencyFlex && lowlatency_ctx.lfx_mode == LFXMode::ReflexIDs)
-            return OK();
-
-        lowlatency_ctx.init_al2(pDevice);
-        lowlatency_ctx.init_xell(pDevice);
-
-        lowlatency_ctx.sleep_called();
-        spdlog::debug("LowLatency update called on sleep with result: {}", lowlatency_ctx.update(INVALID_ID));
-        return OK();
+        return lowlatency_ctx.Sleep(pDevice);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
@@ -579,56 +543,11 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams) {
-        static NvU64 previous_frame_id = 0;
-        static NvU64 current_frame_id = 0;
-        switch (pSetAsyncFrameMarkerParams->markerType) {
-            case PRESENT_START:
-                log_event("async_marker_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
-                break;
-            case PRESENT_END:
-                log_event("async_marker_PRESENT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
-                break;
-            case OUT_OF_BAND_RENDERSUBMIT_START:
-                log_event("async_marker_OUB_RENDERSUBMIT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
-                break;
-            case OUT_OF_BAND_RENDERSUBMIT_END:
-                log_event("async_marker_OUB_RENDERSUBMIT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
-                break;
-            case OUT_OF_BAND_PRESENT_START: {
-                log_event("async_marker_OUB_PRESENT_START", "{}", pSetAsyncFrameMarkerParams->frameID);
-                constexpr size_t history_size = 12;
-                static size_t counter = 0;
-                static NvU64 previous_frame_ids[history_size] = {};
-                current_frame_id = pSetAsyncFrameMarkerParams->frameID;
+        if (pSetAsyncFrameMarkerParams == nullptr)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-                previous_frame_ids[counter%history_size] = current_frame_id;
-                counter++;
+        lowlatency_ctx.SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
 
-                int repeat_count = 0;
-
-                for (size_t i = 1; i < history_size; i++) {
-                    // won't catch repeat frame ids across array wrap around
-                    if (previous_frame_ids[i] == previous_frame_ids[i - 1]) {
-                        repeat_count++;
-                    }
-                }
-
-                if (lowlatency_ctx.fg && repeat_count == 0) lowlatency_ctx.fg = false;
-                else if (!lowlatency_ctx.fg && repeat_count >= history_size / 2 - 1) lowlatency_ctx.fg = true;
-
-                lowlatency_ctx.set_fg_type(previous_frame_id != current_frame_id, current_frame_id);
-                previous_frame_id = current_frame_id;
-                break;
-            }
-            case OUT_OF_BAND_PRESENT_END:
-                log_event("async_marker_OUB_PRESENT_END", "{}", pSetAsyncFrameMarkerParams->frameID);
-                if (previous_frame_id == current_frame_id)
-                    lowlatency_ctx.pcl_end(pSetAsyncFrameMarkerParams->frameID);
-                break;
-            default:
-                log_event("async_marker_other", "{}", pSetAsyncFrameMarkerParams->frameID);
-                break;
-        }
         return OK();
     }
 
@@ -698,26 +617,27 @@ namespace nvd {
             ref_count--;
         
         if(ref_count.load() == 0)
-            lowlatency_ctx.unload();
+            lowlatency_ctx.deinit_current_tech();
 
         return OK();
     }
 
+    // TODO: Remove?
     NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
-        if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
+        // if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
-        if (lowlatency_ctx.get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
-        *call_spot = (uint64_t)lowlatency_ctx.call_spot;
+        // if (lowlatency_ctx.get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
+        // *call_spot = (uint64_t)lowlatency_ctx.call_spot;
 
-        *target = lowlatency_ctx.lfx_stats.target;
-        *latency = lowlatency_ctx.lfx_stats.latency;
-        *frame_time = lowlatency_ctx.lfx_stats.frame_time;
+        // *target = lowlatency_ctx.lfx_stats.target;
+        // *latency = lowlatency_ctx.lfx_stats.latency;
+        // *frame_time = lowlatency_ctx.lfx_stats.frame_time;
 
         return OK();
     }
 
     NvAPI_Status __cdecl Fake_InformFGState(bool fg_state) {
-        lowlatency_ctx.forced_fg = fg_state;
+        lowlatency_ctx.set_forced_fg(fg_state);
         return OK();
     }
 
@@ -726,17 +646,16 @@ namespace nvd {
         return OK();
     }
 
-#if _WIN64
-    NvAPI_Status __cdecl Fake_GetAntiLagCtx(AMD::AntiLag2DX12::Context** al2_context) {
-        if (al2_context == nullptr)
+    NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** low_latency_context, Mode* mode) {
+        if (!low_latency_context || !mode)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        if (lowlatency_ctx.al2_dx12_ctx.m_pAntiLagAPI != nullptr) {
-            *al2_context = &lowlatency_ctx.al2_dx12_ctx;
+        lowlatency_ctx.get_low_latency_context(low_latency_context, mode);
+
+        if (*low_latency_context) {
             return OK();
         }
 
         return ERROR();
     }
-#endif
 }

@@ -1,5 +1,3 @@
-#pragma once
-
 #include <dxgi.h>
 #if _MSC_VER
 #include <d3d12.h>
@@ -21,7 +19,7 @@
 #include "lowlatency.h"
 
 // https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
-inline int LowLatency::timer_sleep(int64_t hundred_ns){
+inline int LowLatencyOld::timer_sleep(int64_t hundred_ns){
     static HANDLE timer = CreateWaitableTimerExW(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
     LARGE_INTEGER due_time;
 
@@ -39,7 +37,7 @@ inline int LowLatency::timer_sleep(int64_t hundred_ns){
     return 0;
 };
 
-inline int LowLatency::busywait_sleep(int64_t ns) {
+inline int LowLatencyOld::busywait_sleep(int64_t ns) {
     auto current_time = get_timestamp();
     auto wait_until = current_time + ns;
     while (current_time < wait_until) {
@@ -48,7 +46,7 @@ inline int LowLatency::busywait_sleep(int64_t ns) {
     return 0;
 }
 
-inline int LowLatency::eepy(int64_t ns) {
+inline int LowLatencyOld::eepy(int64_t ns) {
     constexpr int64_t busywait_threshold = 2000000;
     int status {};
     auto current_time = get_timestamp();
@@ -63,7 +61,7 @@ inline int LowLatency::eepy(int64_t ns) {
     return status;
 }
 
-void LowLatency::report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+void LowLatencyOld::report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
     auto current_timestamp = get_timestamp() / 1000;
     static auto last_sim_start = current_timestamp;
     static auto _2nd_last_sim_start = current_timestamp;
@@ -106,7 +104,7 @@ void LowLatency::report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams
     }
 }
 
-std::string LowLatency::get_algorithm_name() {
+std::string LowLatencyOld::get_algorithm_name() {
     std::string algo;
 
     switch (mode) {
@@ -124,7 +122,7 @@ std::string LowLatency::get_algorithm_name() {
     return algo;
 }
 
-void LowLatency::init_al2(IUnknown *pDevice) {
+void LowLatencyOld::init_al2(IUnknown *pDevice) {
 #if _WIN64
     if (mode == Mode::AntiLag2 && !al2_dx12_ctx.m_pAntiLagAPI && !al2_dx11_ctx.m_pAntiLagAPI) {
         ID3D12Device* device = nullptr;
@@ -154,7 +152,7 @@ void LowLatency::init_al2(IUnknown *pDevice) {
 #endif
 }
 
-void LowLatency::init_xell(IUnknown* pDevice) {
+void LowLatencyOld::init_xell(IUnknown* pDevice) {
     if (!pDevice || xell_ctx || mode != Mode::XeLL)
         return;
 
@@ -196,7 +194,7 @@ void LowLatency::init_xell(IUnknown* pDevice) {
     spdlog::info("XeLL init result: {}", (int32_t)result);
 }
 
-void LowLatency::init_lfx() {
+void LowLatencyOld::init_lfx() {
     if (!lfx_ctx) {
         lfx_ctx = new lfx::LatencyFleX();
         update_config();
@@ -204,13 +202,13 @@ void LowLatency::init_lfx() {
     }
 }
 
-inline void LowLatency::update_config() {
+inline void LowLatencyOld::update_config() {
     force_latencyflex = Config::get().get_force_latencyflex();
     force_reflex = Config::get().get_force_reflex();
     lfx_mode = Config::get().get_latencyflex_mode();
 }
 
-inline HRESULT LowLatency::update(uint64_t reflex_frame_id) { 
+inline HRESULT LowLatencyOld::update(uint64_t reflex_frame_id) { 
     std::lock_guard<std::mutex> lock(update_mutex);
 
     update_config();
@@ -339,7 +337,7 @@ inline HRESULT LowLatency::update(uint64_t reflex_frame_id) {
     return S_FALSE;
 }
 
-HRESULT LowLatency::set_fg_type(bool interpolated, uint64_t reflex_frame_id) {
+HRESULT LowLatencyOld::set_fg_type(bool interpolated, uint64_t reflex_frame_id) {
 #if _WIN64
     if (fg || forced_fg) {
         log_event("al2_set_fg_type", "{}", reflex_frame_id);
@@ -349,7 +347,7 @@ HRESULT LowLatency::set_fg_type(bool interpolated, uint64_t reflex_frame_id) {
     return S_FALSE;
 }
 
-inline HRESULT LowLatency::mark_end_of_rendering(uint64_t reflex_frame_id) {
+inline HRESULT LowLatencyOld::mark_end_of_rendering(uint64_t reflex_frame_id) {
 #if _WIN64
     if (fg || forced_fg) {
         log_event("al2_end_of_rendering", "{}", reflex_frame_id);
@@ -359,7 +357,7 @@ inline HRESULT LowLatency::mark_end_of_rendering(uint64_t reflex_frame_id) {
     return S_FALSE;
 }
 
-inline void LowLatency::lfx_end_frame(uint64_t reflex_frame_id) {
+inline void LowLatencyOld::lfx_end_frame(uint64_t reflex_frame_id) {
     auto current_timestamp = get_timestamp();
     lfx_mutex.lock();
     auto frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : lfx_stats.frame_id;
@@ -369,12 +367,12 @@ inline void LowLatency::lfx_end_frame(uint64_t reflex_frame_id) {
     spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", lfx_stats.latency, lfx_stats.frame_time, current_timestamp);
 }
 
-inline void LowLatency::pcl_start(uint64_t reflex_frame_id) {
+inline void LowLatencyOld::pcl_start(uint64_t reflex_frame_id) {
     pcl_start_ids[reflex_frame_id % pcl_max_inprogress_frames] = reflex_frame_id;
     pcl_start_timestamps[reflex_frame_id % pcl_max_inprogress_frames] = get_timestamp();
 }
 
-inline void LowLatency::pcl_end(uint64_t reflex_frame_id) {
+inline void LowLatencyOld::pcl_end(uint64_t reflex_frame_id) {
     if (pcl_start_ids[reflex_frame_id % pcl_max_inprogress_frames] == reflex_frame_id) {
         pcl_start_ids[reflex_frame_id % pcl_max_inprogress_frames] = UINT64_MAX;
         double time_taken = get_timestamp() - pcl_start_timestamps[reflex_frame_id % pcl_max_inprogress_frames];
@@ -383,7 +381,7 @@ inline void LowLatency::pcl_end(uint64_t reflex_frame_id) {
     }
 }
 
-void LowLatency::xell_set_sleep(NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
+void LowLatencyOld::xell_set_sleep(NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
     xell_sleep_params_t sleep_params{};
     sleep_params.minimumIntervalUs = pSetSleepModeParams->minimumIntervalUs;
     sleep_params.bLowLatencyMode = pSetSleepModeParams->bLowLatencyMode;
@@ -392,7 +390,7 @@ void LowLatency::xell_set_sleep(NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
     xellSetSleepMode(xell_ctx, &sleep_params);
 }
 
-void LowLatency::handle_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+void LowLatencyOld::handle_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
     report_marker(pSetLatencyMarkerParams);
 
     static std::thread::id simulation_start_thread = {};
@@ -496,14 +494,14 @@ void LowLatency::handle_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams
     }
 }
 
-void LowLatency::sleep_called() {
+void LowLatencyOld::sleep_called() {
     if (mode != Mode::XeLL) {
         call_spot = CallSpot::SleepCall;
         calls_without_sleep = 0;
     }
 }
 
-void LowLatency::unload() {
+void LowLatencyOld::unload() {
     spdlog::info("Unloading lowlatency");
 #if _WIN64
     if (al2_dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&al2_dx12_ctx))
@@ -524,13 +522,13 @@ void LowLatency::unload() {
     }
 }
 
-void LowLatency::set_min_interval_us(unsigned long interval_us) {
+void LowLatencyOld::set_min_interval_us(unsigned long interval_us) {
     if (min_interval_us != interval_us) {
         min_interval_us = interval_us;
         spdlog::info("Changed max fps: {}", interval_us > 0 ? 1000000 / interval_us : 0);
     }
 }
 
-Mode LowLatency::get_mode() {
+Mode LowLatencyOld::get_mode() {
     return mode;
 }
