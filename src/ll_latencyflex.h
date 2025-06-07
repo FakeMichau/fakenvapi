@@ -1,6 +1,7 @@
 #pragma once
 
 #include "low_latency_tech.h"
+
 #include "../external/latencyflex.h"
 
 class LatencyFlex : public virtual LowLatencyTech {
@@ -9,7 +10,6 @@ private:
 
     std::mutex mutex;
 
-    bool low_latency_enabled = false;
     uint32_t minimum_interval_us = 0;
 
     uint64_t latency = 0;

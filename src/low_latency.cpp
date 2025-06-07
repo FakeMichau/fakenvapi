@@ -1,6 +1,8 @@
 #include "low_latency.h"
 #include "ll_antilag2.h"
 #include "ll_latencyflex.h"
+#include "ll_xell.h"
+
 #include "log.h"
 #include "config.h"
 
@@ -20,6 +22,12 @@ bool LowLatency::deinit_current_tech() {
 bool LowLatency::update_low_latency_tech(IUnknown* pDevice) {
     if (!currently_active_tech) {
         if (!Config::get().get_force_latencyflex()) {
+            currently_active_tech = new XeLL();
+            if (currently_active_tech->init(pDevice))
+                return true;
+            
+            delete currently_active_tech;
+
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init(pDevice))
                 return true;

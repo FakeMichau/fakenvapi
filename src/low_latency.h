@@ -13,23 +13,23 @@
 #include <optional>
 
 struct FrameReport {
-    NvU64 frameID;
-    NvU64 inputSampleTime;
-    NvU64 simStartTime;
-    NvU64 simEndTime;
-    NvU64 renderSubmitStartTime;
-    NvU64 renderSubmitEndTime;
-    NvU64 presentStartTime;
-    NvU64 presentEndTime;
-    NvU64 driverStartTime;
-    NvU64 driverEndTime;
-    NvU64 osRenderQueueStartTime;
-    NvU64 osRenderQueueEndTime;
-    NvU64 gpuRenderStartTime;
-    NvU64 gpuRenderEndTime;
-    NvU32 gpuActiveRenderTimeUs;
-    NvU32 gpuFrameTimeUs;
-    NvU8 rsvd[120];
+    uint64_t frameID;
+    uint64_t inputSampleTime;
+    uint64_t simStartTime;
+    uint64_t simEndTime;
+    uint64_t renderSubmitStartTime;
+    uint64_t renderSubmitEndTime;
+    uint64_t presentStartTime;
+    uint64_t presentEndTime;
+    uint64_t driverStartTime;
+    uint64_t driverEndTime;
+    uint64_t osRenderQueueStartTime;
+    uint64_t osRenderQueueEndTime;
+    uint64_t gpuRenderStartTime;
+    uint64_t gpuRenderEndTime;
+    uint32_t gpuActiveRenderTimeUs;
+    uint32_t gpuFrameTimeUs;
+    uint8_t rsvd[120];
 };
 
 class LowLatency {

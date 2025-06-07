@@ -10,7 +10,6 @@ private:
     AMD::AntiLag2DX12::Context dx12_ctx = {};
     AMD::AntiLag2DX11::Context dx11_ctx = {};
 
-    bool low_latency_enabled = false;
     uint32_t minimum_interval_us = 0;
 
     HRESULT al2_sleep();
