@@ -1,50 +1,5 @@
 #include "ll_antilag2.h"
 
-// https://learn.microsoft.com/en-us/windows/win32/sync/using-waitable-timer-objects
-inline int timer_sleep(int64_t hundred_ns){
-    static HANDLE timer = CreateWaitableTimerExW(NULL, NULL, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
-    LARGE_INTEGER due_time;
-
-    due_time.QuadPart = -hundred_ns;
-
-    if(!timer)
-        return 1;
-
-    if (!SetWaitableTimerEx(timer, &due_time, 0, NULL, NULL, NULL, 0))
-        return 2;
-
-    if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0)
-        return 3;
-
-    return 0;
-};
-
-inline int busywait_sleep(int64_t ns) {
-    auto current_time = get_timestamp();
-    auto wait_until = current_time + ns;
-    while (current_time < wait_until) {
-        current_time = get_timestamp();
-    }
-    return 0;
-}
-
-inline int eepy(int64_t ns) {
-    constexpr int64_t busywait_threshold = 2'000'000; // 2ms
-
-    int status;
-    
-    auto current_time = get_timestamp();
-    if (ns <= busywait_threshold)
-        status = busywait_sleep(ns);
-    else
-        status = timer_sleep((ns - busywait_threshold) / 100);
-
-    if (int64_t sleep_deviation = ns - (get_timestamp() - current_time); sleep_deviation > 0 && !status)
-        status = busywait_sleep(sleep_deviation);
-
-    return status;
-}
-
 inline HRESULT AntiLag2::al2_sleep() {
     int max_fps = 0;
 
@@ -68,16 +23,10 @@ inline HRESULT AntiLag2::al2_sleep() {
 
     // auto pre_sleep = get_timestamp();
 
-    bool enabled;
-    if (low_latency_override.has_value())
-        enabled = low_latency_override.value();
-    else
-        enabled = low_latency_enabled;
-
     if (dx12_ctx.m_pAntiLagAPI)
-        result = AMD::AntiLag2DX12::Update(&dx12_ctx, enabled, max_fps);
+        result = AMD::AntiLag2DX12::Update(&dx12_ctx, is_enabled(), max_fps);
     else if (dx11_ctx.m_pAntiLagAPI)
-        result = AMD::AntiLag2DX11::Update(&dx11_ctx, enabled, max_fps);
+        result = AMD::AntiLag2DX11::Update(&dx11_ctx, is_enabled(), max_fps);
 
     // log_event("al2_sleep", "{}", get_timestamp() - pre_sleep);
 
@@ -139,11 +88,7 @@ void* AntiLag2::get_tech_context() {
 }
 
 void AntiLag2::get_sleep_status(SleepParams* sleep_params) {
-    if (low_latency_override.has_value())
-        sleep_params->low_latency_enabled = low_latency_override.value();
-    else
-        sleep_params->low_latency_enabled = low_latency_enabled;
-
+    sleep_params->low_latency_enabled = is_enabled();
     sleep_params->fullscreen_vrr = true;
     sleep_params->control_panel_vsync_override = false;
 }

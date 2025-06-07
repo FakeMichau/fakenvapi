@@ -10,6 +10,7 @@
 #endif
 
 #include "util.h"
+#include <optional>
 
 struct FrameReport {
     NvU64 frameID;
@@ -40,7 +41,9 @@ private:
     
     bool update_low_latency_tech(IUnknown* pDevice);
     void update_effective_fg_state();
-    void report_marker(NV_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
+    void update_enabled_override();
+    void add_marker_to_report(NV_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
+    void update_config();
 
 public:
     LowLatency() = default;
@@ -48,7 +51,7 @@ public:
 
     bool deinit_current_tech();
     void get_latency_result(NV_LATENCY_RESULT_PARAMS* pGetLatencyParams);
-    void set_forced_fg(std::optional<bool> forced_fg) { this->forced_fg = forced_fg; }; // TODO: needs more work
+    void set_forced_fg(std::optional<bool> forced_fg) { this->forced_fg = forced_fg; };
     void set_fg_type(bool interpolated, uint64_t frame_id) { currently_active_tech->set_fg_type(interpolated, frame_id); }
     void get_low_latency_context(void** low_latency_context, Mode* low_latency_tech);
 

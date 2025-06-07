@@ -138,15 +138,15 @@ public:
         config_monitor_thread.detach();
     }
 
-    bool get_enable_logs () {
+    bool get_enable_logs() {
         return _enable_logs;
     }
 
-    bool get_enable_trace_logs () {
+    bool get_enable_trace_logs() {
         return _enable_trace_logs;
     }
 
-    bool get_force_latencyflex () {
+    bool get_force_latencyflex() {
         return _force_latencyflex;
     }
 

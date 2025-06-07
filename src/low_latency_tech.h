@@ -8,7 +8,8 @@
 #endif
 
 #include "log.h"
-#include <optional>
+
+#define INVALID_ID 0xFFFFFFFFFFFFFFFF
 
 enum class Mode {
     AntiLag2,
@@ -60,16 +61,15 @@ struct MarkerParams {
 class LowLatencyTech {
 protected:
     CallSpot current_call_spot = CallSpot::SleepCall;
+    ForceReflex low_latency_override = ForceReflex::InGame;
+    bool effective_fg_state = false;
 
 public:
     LowLatencyTech():
         current_call_spot(CallSpot::SleepCall), 
-        low_latency_override(std::nullopt), 
+        low_latency_override(ForceReflex::InGame), 
         effective_fg_state(false) {}
     virtual ~LowLatencyTech() {}
-
-    std::optional<bool> low_latency_override = std::nullopt;
-    bool effective_fg_state = false;
 
     virtual bool init(IUnknown* pDevice) = 0;
     virtual void deinit() = 0;
@@ -77,6 +77,10 @@ public:
     virtual Mode get_mode() = 0;
     virtual void* get_tech_context() = 0;
     virtual void set_fg_type(bool interpolated, uint64_t frame_id) = 0;
+    virtual void set_low_latency_override(ForceReflex low_latency_override) = 0;
+    virtual void set_effective_fg_state(bool effective_fg_state) = 0;
+
+    virtual bool is_enabled() = 0;
 
     virtual void get_sleep_status(SleepParams* sleep_params) = 0;
     virtual void set_sleep_mode(SleepMode* sleep_mode) = 0;

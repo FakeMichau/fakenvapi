@@ -1,6 +1,8 @@
 #include "low_latency.h"
 #include "ll_antilag2.h"
+#include "ll_latencyflex.h"
 #include "log.h"
+#include "config.h"
 
 bool LowLatency::deinit_current_tech() {
     if (currently_active_tech) {
@@ -17,12 +19,22 @@ bool LowLatency::deinit_current_tech() {
 
 bool LowLatency::update_low_latency_tech(IUnknown* pDevice) {
     if (!currently_active_tech) {
-        // init, determine what to use
-        currently_active_tech = new AntiLag2();
+        if (!Config::get().get_force_latencyflex()) {
+            currently_active_tech = new AntiLag2();
+            if (currently_active_tech->init(pDevice))
+                return true;
+            
+            delete currently_active_tech;
+        }
+
+        currently_active_tech = new LatencyFlex();
         return currently_active_tech->init(pDevice);
     }
     
-    bool change_detected = false; // TODO detect change in config
+    static bool last_force_latencyflex = Config::get().get_force_latencyflex();
+    bool force_latencyflex = Config::get().get_force_latencyflex();
+    bool change_detected = last_force_latencyflex != force_latencyflex;
+    last_force_latencyflex = force_latencyflex;
     
     if (change_detected) {
         if (deinit_current_tech()) {
@@ -41,12 +53,19 @@ void LowLatency::update_effective_fg_state() {
         return;
 
     if (forced_fg.has_value())
-        currently_active_tech->effective_fg_state = forced_fg.value();
+        currently_active_tech->set_effective_fg_state(forced_fg.value());
     else
-        currently_active_tech->effective_fg_state = fg;
+        currently_active_tech->set_effective_fg_state(fg);
 }
 
-void LowLatency::report_marker(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+void LowLatency::update_enabled_override() {
+    if (!currently_active_tech)
+        return;
+
+    currently_active_tech->set_low_latency_override(Config::get().get_force_reflex());
+}
+
+void LowLatency::add_marker_to_report(NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
     auto current_timestamp = get_timestamp() / 1000;
     static auto last_sim_start = current_timestamp;
     static auto _2nd_last_sim_start = current_timestamp;
@@ -150,7 +169,9 @@ NvAPI_Status LowLatency::SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARA
 
     update_effective_fg_state();
 
-    report_marker(pSetLatencyMarkerParams);
+    update_enabled_override();
+
+    add_marker_to_report(pSetLatencyMarkerParams);
 
     MarkerParams marker_params{};
 

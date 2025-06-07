@@ -35,7 +35,7 @@ struct LFXStats {
     uint64_t frame_time = 1;
     uint64_t target = 0;
     uint64_t frame_id = 0;
-    bool needs_reset = false;      
+    bool needs_reset = false;
 };
 
 struct FrameReport {
