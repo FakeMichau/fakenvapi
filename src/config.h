@@ -68,7 +68,7 @@ class Config {
         spdlog::flush_on(level);
 
         // Some of them won't be logged as logging needs to be set up
-        spdlog::info("Config updated");
+        spdlog::info("Config updated ---------------");
 
         // TODO: make it a function
         spdlog::info("Config enable_trace_logs: {}", _enable_trace_logs ? "true" : "false");

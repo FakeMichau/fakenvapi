@@ -19,7 +19,7 @@ bool XeLL::load_dll() {
     if (o_xellD3D12CreateContext && o_xellDestroyContext && o_xellSetSleepMode && o_xellGetSleepMode && o_xellSleep && o_xellAddMarkerData && o_xellGetVersion && o_xellSetLoggingCallback && o_xellGetFramesReports)
         return true;
     
-    spdlog::debug("Couldn't load libxell.dll");
+    spdlog::info("Couldn't load libxell.dll");
     return false;
 }
 
