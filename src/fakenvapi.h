@@ -81,6 +81,15 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_D3D12_BuildRaytracingAccelerationStructureEx(ID3D12GraphicsCommandList4* pCommandList, const NVAPI_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_EX_PARAMS* pParams);
     NvAPI_Status __cdecl NvAPI_D3D12_NotifyOutOfBandCommandQueue(ID3D12CommandQueue* pCommandQueue, NV_OUT_OF_BAND_CQ_TYPE cqType);
     NvAPI_Status __cdecl NvAPI_D3D12_SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, NV_ASYNC_FRAME_MARKER_PARAMS* pSetAsyncFrameMarkerParams);
+    NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(HANDLE vkDevice, HANDLE *signalSemaphoreHandle);
+    NvAPI_Status __cdecl NvAPI_Vulkan_DestroyLowLatencyDevice(HANDLE vkDevice);
+    NvAPI_Status __cdecl NvAPI_Vulkan_GetSleepStatus(HANDLE vkDevice, NV_VULKAN_GET_SLEEP_STATUS_PARAMS *pGetSleepStatusParams);
+    NvAPI_Status __cdecl NvAPI_Vulkan_SetSleepMode(HANDLE vkDevice, NV_VULKAN_SET_SLEEP_MODE_PARAMS *pSetSleepModeParams);
+    NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(HANDLE vkDevice, NvU64 signalValue);
+    NvAPI_Status __cdecl NvAPI_Vulkan_GetLatency(HANDLE vkDevice, NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams);
+    NvAPI_Status __cdecl NvAPI_Vulkan_SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
+    NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(HANDLE vkDevice, HANDLE queueHandle, NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType);
+    NvAPI_Status __cdecl NvAPI_Vulkan_Unknown_1();
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session);
     NvAPI_Status __cdecl NvAPI_DRS_LoadSettings(NvDRSSessionHandle session);
     NvAPI_Status __cdecl NvAPI_DRS_SaveSettings(NvDRSSessionHandle session);
@@ -89,7 +98,6 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_DRS_SetSetting(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting);
     NvAPI_Status __cdecl NvAPI_DRS_DestroySession(NvDRSSessionHandle session);
     NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk);
-    NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_SK_1(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_SK_2(IUnknown* unknown);
     NvAPI_Status __cdecl NvAPI_SK_3(IUnknown* unknown);

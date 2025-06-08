@@ -1,10 +1,11 @@
 #pragma once
-#include "../external/nvapi.h"
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include "../external/nvapi/nvapi.h"
 #include <string>
 #include <map>
 #include <cstdint>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 
 void tonvss(NvAPI_ShortString nvss, std::string str);
 

@@ -551,6 +551,42 @@ namespace nvd {
         return OK();
     }
 
+    NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(__in HANDLE vkDevice, __out HANDLE *signalSemaphoreHandle) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_DestroyLowLatencyDevice(__in HANDLE vkDevice) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_GetSleepStatus(__in HANDLE vkDevice, __inout NV_VULKAN_GET_SLEEP_STATUS_PARAMS *pGetSleepStatusParams) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_SetSleepMode(__in HANDLE vkDevice, __in NV_VULKAN_SET_SLEEP_MODE_PARAMS *pSetSleepModeParams) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(__in HANDLE vkDevice, __in NvU64 signalValue) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_GetLatency(__in HANDLE vkDevice, __inout NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_SetLatencyMarker(__in HANDLE vkDevice, __in NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(__in HANDLE vkDevice, __in HANDLE queueHandle, __in NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType) {
+        return OK();
+    }
+
+    NvAPI_Status __cdecl NvAPI_Vulkan_Unknown_1() {
+        return OK();
+    }
+
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session) {
         *session = drs_session;
         return OK();
@@ -585,10 +621,6 @@ namespace nvd {
 
     NvAPI_Status __cdecl NvAPI_Unknown_1(IUnknown* unknown, uint32_t* pMiscUnk) {
         std::fill(pMiscUnk, pMiscUnk + 4, 0x1);
-        return OK();
-    }
-
-    NvAPI_Status __cdecl NvAPI_Vulkan_1(IUnknown* unknown) {
         return OK();
     }
 

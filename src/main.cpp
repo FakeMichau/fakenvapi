@@ -2,13 +2,14 @@
 
 #include <dxgi.h>
 #include <d3d11.h>
-#include "../external/nvapi_interface.h"
+#include <windows.h>
+#include "../external/nvapi/nvapi_interface.h"
 #if _MSC_VER
 #include <d3d12.h>
 #else
 #include "../external/d3d12.h"
 #endif
-#include "../external/nvapi.h"
+#include "../external/nvapi/nvapi.h"
 #include "fakenvapi.h"
 #include "../version.h"
 
@@ -46,7 +47,6 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_Diag_ReportCallStart", 0x33c7358c },
     { "NvAPI_Diag_ReportCallReturn", 0x593e8644 },
     { "NvAPI_Unknown_1", 0xe9b009b9 },
-    { "NvAPI_Vulkan_1", 0x17d13d6 },
     { "NvAPI_SK_1", 0x57f7caac },
     { "NvAPI_SK_2", 0x11104158 },
     { "NvAPI_SK_3", 0xe3795199 },
@@ -142,6 +142,15 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_BuildRaytracingAccelerationStructureEx)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_NotifyOutOfBandCommandQueue)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_D3D12_SetAsyncFrameMarker)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_InitLowLatencyDevice)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_DestroyLowLatencyDevice)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_GetSleepStatus)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_SetSleepMode)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_Sleep)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_GetLatency)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_SetLatencyMarker)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_NotifyOutOfBandVkQueue)
+            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_Unknown_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_CreateSession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_LoadSettings)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SaveSettings)
@@ -150,7 +159,6 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SetSetting)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_DestroySession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Unknown_1)
-            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_2)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_SK_3)

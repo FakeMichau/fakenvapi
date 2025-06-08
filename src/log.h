@@ -2,7 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <format>
-#include "../external/nvapi.h"
+#include <windows.h>
+#include "../external/nvapi/nvapi.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "util.h"
