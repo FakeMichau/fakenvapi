@@ -327,35 +327,44 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetSleepStatus(IUnknown* pDevice, NV_GET_SLEEP_STATUS_PARAMS* pGetSleepStatusParams) {
-        return lowlatency_ctx.GetSleepStatus(pDevice, pGetSleepStatusParams);
-    }
-
-    NvAPI_Status __cdecl NvAPI_D3D_GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
         if (!Init())
             return ERROR();
 
-        if (pGetLatencyParams == nullptr)
+        if (!pDevice || !pGetSleepStatusParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+
+        return lowlatency_ctx.GetSleepStatus(pDevice, pGetSleepStatusParams);
+    }
+
+    NvAPI_Status __cdecl NvAPI_D3D_GetLatency(IUnknown* pDevice, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
+        if (!Init())
+            return ERROR();
+
+        if (!pDevice || !pGetLatencyParams)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);;
         
         // xellGetFramesReports() currently doesn't give any extra data that we can't already get
-        return lowlatency_ctx.GetLatency(pDev, pGetLatencyParams);
+        return lowlatency_ctx.GetLatency(pDevice, pGetLatencyParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
         if (!Init())
             return ERROR();
 
+        if (!pDevice || !pSetSleepModeParams)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+
         return lowlatency_ctx.SetSleepMode(pDevice, pSetSleepModeParams);
     }
 
-    NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
+    NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDevice, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
         if (!Init())
             return ERROR();
 
-        if (!pDev)
-            return ERROR();
+        if (!pDevice || !pSetLatencyMarkerParams)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.SetLatencyMarker(pDev, pSetLatencyMarkerParams);
+        return lowlatency_ctx.SetLatencyMarker(pDevice, pSetLatencyMarkerParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
@@ -363,12 +372,12 @@ namespace nvd {
             return ERROR();
             
         if (!pDevice)
-            return ERROR();
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         return lowlatency_ctx.Sleep(pDevice);
     }
 
-    NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDev, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
+    NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDevice, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
         return OK();
     }
 
@@ -557,12 +566,21 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_GetSleepStatus(__in HANDLE vkDevice, __inout NV_VULKAN_GET_SLEEP_STATUS_PARAMS *pGetSleepStatusParams) {
+        if (!Init())
+            return ERROR();
+
+        if (!vkDevice || !pGetSleepStatusParams)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+
         return lowlatency_ctx.GetSleepStatus(vkDevice, pGetSleepStatusParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_SetSleepMode(__in HANDLE vkDevice, __in NV_VULKAN_SET_SLEEP_MODE_PARAMS *pSetSleepModeParams) {
         if (!Init())
             return ERROR();
+
+        if (!vkDevice || !pSetSleepModeParams)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         return lowlatency_ctx.SetSleepMode(vkDevice, pSetSleepModeParams);
     }
@@ -572,7 +590,7 @@ namespace nvd {
             return ERROR();
             
         if (!vkDevice)
-            return ERROR();
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         return lowlatency_ctx.Sleep(vkDevice);
     }
@@ -581,7 +599,7 @@ namespace nvd {
         if (!Init())
             return ERROR();
 
-        if (pGetLatencyParams == nullptr)
+        if (!vkDevice || !pGetLatencyParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
         
         return lowlatency_ctx.GetLatency(vkDevice, pGetLatencyParams);
@@ -591,17 +609,13 @@ namespace nvd {
         if (!Init())
             return ERROR();
 
-        if (!vkDevice)
-            return ERROR();
+        if (!vkDevice || !pSetLatencyMarkerParams)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         return lowlatency_ctx.SetLatencyMarker(vkDevice, pSetLatencyMarkerParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(__in HANDLE vkDevice, __in HANDLE queueHandle, __in NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType) {
-        return OK();
-    }
-
-    NvAPI_Status __cdecl NvAPI_Vulkan_Unknown_1() {
         return OK();
     }
 
@@ -696,7 +710,22 @@ namespace nvd {
         return OK();
     }
 
-    NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** low_latency_context, Mode* mode) {
+    // Deprecated
+    NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** antilag2_context) {
+        if (!antilag2_context)
+            return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
+
+        Mode mode {};
+        lowlatency_ctx.get_low_latency_context(antilag2_context, &mode);
+
+        if (*antilag2_context && mode == Mode::AntiLag2) {
+            return OK();
+        }
+
+        return ERROR();
+    }
+
+    NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, Mode* mode) {
         if (!low_latency_context || !mode)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 

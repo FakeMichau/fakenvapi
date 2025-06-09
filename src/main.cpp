@@ -55,7 +55,8 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "Fake_GetLatency", 0x21372137 },
     { "Fake_InformFGState", 0x21382138 },
     { "Fake_InformPresentFG", 0x21392139 },
-    { "Fake_GetAntiLagCtx", 0x21402140 }
+    { "Fake_GetAntiLagCtx", 0x21402140 },
+    { "Fake_GetLowLatencyCtx", 0x21412141 }
 };
 
 namespace nvd {
@@ -150,7 +151,6 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_GetLatency)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_SetLatencyMarker)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_NotifyOutOfBandVkQueue)
-            INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_Vulkan_Unknown_1)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_CreateSession)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_LoadSettings)
             INSERT_AND_RETURN_WHEN_EQUALS(NvAPI_DRS_SaveSettings)
@@ -169,6 +169,7 @@ namespace nvd {
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformFGState)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_InformPresentFG)
             INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetAntiLagCtx)
+            INSERT_AND_RETURN_WHEN_EQUALS(Fake_GetLowLatencyCtx)
 
             spdlog::debug("{}: not implemented, placeholder given", it->func);
             return registry.insert({ id, (void*)placeholder }).first->second;

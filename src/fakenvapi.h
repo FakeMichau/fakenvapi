@@ -89,7 +89,6 @@ namespace nvd {
     NvAPI_Status __cdecl NvAPI_Vulkan_GetLatency(HANDLE vkDevice, NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams);
     NvAPI_Status __cdecl NvAPI_Vulkan_SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams);
     NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(HANDLE vkDevice, HANDLE queueHandle, NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType);
-    NvAPI_Status __cdecl NvAPI_Vulkan_Unknown_1();
     NvAPI_Status __cdecl NvAPI_DRS_CreateSession(NvDRSSessionHandle* session);
     NvAPI_Status __cdecl NvAPI_DRS_LoadSettings(NvDRSSessionHandle session);
     NvAPI_Status __cdecl NvAPI_DRS_SaveSettings(NvDRSSessionHandle session);
@@ -107,5 +106,6 @@ namespace nvd {
     NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* wait_target, uint64_t* latency, uint64_t* frame_time);
     NvAPI_Status __cdecl Fake_InformFGState(bool fg_state);
     NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id);
-    NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** low_latency_context, Mode* mode);
+    NvAPI_Status __cdecl Fake_GetAntiLagCtx(void** antilag2_context);
+    NvAPI_Status __cdecl Fake_GetLowLatencyCtx(void** low_latency_context, Mode* mode);
 }

@@ -416,8 +416,10 @@ NvAPI_Status LowLatency::SetAsyncFrameMarker(ID3D12CommandQueue* pCommandQueue, 
     }
 
     currently_active_tech->set_async_marker(&marker_params);
-    
-    return OK();
+
+    spdlog::trace("Async {}: {}", marker_to_name(pSetAsyncFrameMarkerParams->markerType), pSetAsyncFrameMarkerParams->frameID);
+
+    return NVAPI_OK;
 }
 
 NvAPI_Status LowLatency::GetLatency(IUnknown* pDev, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
