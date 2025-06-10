@@ -69,7 +69,7 @@ void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id) {
     // log_event("lfx_endframe", "{}", frame_id);
     ctx->EndFrame(frame_id, current_timestamp, &latency, &frame_time);
     mutex.unlock();
-    spdlog::debug("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
+    spdlog::trace("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
 }
 
 bool LatencyFlex::init(IUnknown *pDevice) {

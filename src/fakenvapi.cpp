@@ -1,6 +1,8 @@
 #include "fakenvapi.h"
 
-namespace nvd {
+LowLatency* LowLatencyCtx::lowlatency_ctx = nullptr;
+
+namespace fakenvapi {
     bool Init() {
         if (!device_id) {
             IDXGIFactory1* factory = nullptr;
@@ -333,7 +335,7 @@ namespace nvd {
         if (!pDevice || !pGetSleepStatusParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.GetSleepStatus(pDevice, pGetSleepStatusParams);
+        return LowLatencyCtx::get()->GetSleepStatus(pDevice, pGetSleepStatusParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_GetLatency(IUnknown* pDevice, NV_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
@@ -344,7 +346,7 @@ namespace nvd {
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);;
         
         // xellGetFramesReports() currently doesn't give any extra data that we can't already get
-        return lowlatency_ctx.GetLatency(pDevice, pGetLatencyParams);
+        return LowLatencyCtx::get()->GetLatency(pDevice, pGetLatencyParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetSleepMode(IUnknown* pDevice, NV_SET_SLEEP_MODE_PARAMS* pSetSleepModeParams) {
@@ -354,7 +356,7 @@ namespace nvd {
         if (!pDevice || !pSetSleepModeParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.SetSleepMode(pDevice, pSetSleepModeParams);
+        return LowLatencyCtx::get()->SetSleepMode(pDevice, pSetSleepModeParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetLatencyMarker(IUnknown* pDevice, NV_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
@@ -364,7 +366,7 @@ namespace nvd {
         if (!pDevice || !pSetLatencyMarkerParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.SetLatencyMarker(pDevice, pSetLatencyMarkerParams);
+        return LowLatencyCtx::get()->SetLatencyMarker(pDevice, pSetLatencyMarkerParams);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_Sleep(IUnknown* pDevice) {
@@ -374,7 +376,7 @@ namespace nvd {
         if (!pDevice)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.Sleep(pDevice);
+        return LowLatencyCtx::get()->Sleep(pDevice);
     }
 
     NvAPI_Status __cdecl NvAPI_D3D_SetReflexSync(IUnknown* pDevice, NV_SET_REFLEX_SYNC_PARAMS* pSetReflexSyncParams) {
@@ -552,7 +554,7 @@ namespace nvd {
         if (pSetAsyncFrameMarkerParams == nullptr)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
+        return LowLatencyCtx::get()->SetAsyncFrameMarker(pCommandQueue, pSetAsyncFrameMarkerParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_InitLowLatencyDevice(__in HANDLE vkDevice, __out HANDLE *signalSemaphoreHandle) {
@@ -561,7 +563,7 @@ namespace nvd {
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_DestroyLowLatencyDevice(__in HANDLE vkDevice) {
-        lowlatency_ctx.deinit_current_tech();
+        LowLatencyCtx::get()->deinit_current_tech();
         return OK();
     }
 
@@ -572,7 +574,7 @@ namespace nvd {
         if (!vkDevice || !pGetSleepStatusParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.GetSleepStatus(vkDevice, pGetSleepStatusParams);
+        return LowLatencyCtx::get()->GetSleepStatus(vkDevice, pGetSleepStatusParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_SetSleepMode(__in HANDLE vkDevice, __in NV_VULKAN_SET_SLEEP_MODE_PARAMS *pSetSleepModeParams) {
@@ -582,7 +584,7 @@ namespace nvd {
         if (!vkDevice || !pSetSleepModeParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.SetSleepMode(vkDevice, pSetSleepModeParams);
+        return LowLatencyCtx::get()->SetSleepMode(vkDevice, pSetSleepModeParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_Sleep(__in HANDLE vkDevice, __in NvU64 signalValue) {
@@ -592,7 +594,7 @@ namespace nvd {
         if (!vkDevice)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.Sleep(vkDevice);
+        return LowLatencyCtx::get()->Sleep(vkDevice);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_GetLatency(__in HANDLE vkDevice, __inout NV_VULKAN_LATENCY_RESULT_PARAMS* pGetLatencyParams) {
@@ -602,7 +604,7 @@ namespace nvd {
         if (!vkDevice || !pGetLatencyParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
         
-        return lowlatency_ctx.GetLatency(vkDevice, pGetLatencyParams);
+        return LowLatencyCtx::get()->GetLatency(vkDevice, pGetLatencyParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_SetLatencyMarker(__in HANDLE vkDevice, __in NV_VULKAN_LATENCY_MARKER_PARAMS* pSetLatencyMarkerParams) {
@@ -612,7 +614,7 @@ namespace nvd {
         if (!vkDevice || !pSetLatencyMarkerParams)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        return lowlatency_ctx.SetLatencyMarker(vkDevice, pSetLatencyMarkerParams);
+        return LowLatencyCtx::get()->SetLatencyMarker(vkDevice, pSetLatencyMarkerParams);
     }
 
     NvAPI_Status __cdecl NvAPI_Vulkan_NotifyOutOfBandVkQueue(__in HANDLE vkDevice, __in HANDLE queueHandle, __in NV_VULKAN_OUT_OF_BAND_QUEUE_TYPE queueType) {
@@ -681,7 +683,7 @@ namespace nvd {
             ref_count--;
         
         if(ref_count.load() == 0)
-            lowlatency_ctx.deinit_current_tech();
+            LowLatencyCtx::get()->deinit_current_tech();
 
         return OK();
     }
@@ -690,23 +692,23 @@ namespace nvd {
     NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
         // if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
 
-        // if (lowlatency_ctx.get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
-        // *call_spot = (uint64_t)lowlatency_ctx.call_spot;
+        // if (LowLatencyCtx::get()->get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
+        // *call_spot = (uint64_t)LowLatencyCtx::get()->call_spot;
 
-        // *target = lowlatency_ctx.lfx_stats.target;
-        // *latency = lowlatency_ctx.lfx_stats.latency;
-        // *frame_time = lowlatency_ctx.lfx_stats.frame_time;
+        // *target = LowLatencyCtx::get()->lfx_stats.target;
+        // *latency = LowLatencyCtx::get()->lfx_stats.latency;
+        // *frame_time = LowLatencyCtx::get()->lfx_stats.frame_time;
 
         return OK();
     }
 
     NvAPI_Status __cdecl Fake_InformFGState(bool fg_state) {
-        lowlatency_ctx.set_forced_fg(fg_state);
+        LowLatencyCtx::get()->set_forced_fg(fg_state);
         return OK();
     }
 
     NvAPI_Status __cdecl Fake_InformPresentFG(bool frame_interpolated, uint64_t reflex_frame_id) {
-        lowlatency_ctx.set_fg_type(frame_interpolated, reflex_frame_id);
+        LowLatencyCtx::get()->set_fg_type(frame_interpolated, reflex_frame_id);
         return OK();
     }
 
@@ -716,12 +718,13 @@ namespace nvd {
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
         Mode mode {};
-        lowlatency_ctx.get_low_latency_context(antilag2_context, &mode);
+        LowLatencyCtx::get()->get_low_latency_context(antilag2_context, &mode);
 
         if (*antilag2_context && mode == Mode::AntiLag2) {
             return OK();
         }
 
+        *antilag2_context = nullptr;
         return ERROR();
     }
 
@@ -729,7 +732,7 @@ namespace nvd {
         if (!low_latency_context || !mode)
             return ERROR_VALUE(NVAPI_INVALID_ARGUMENT);
 
-        lowlatency_ctx.get_low_latency_context(low_latency_context, mode);
+        LowLatencyCtx::get()->get_low_latency_context(low_latency_context, mode);
 
         if (*low_latency_context) {
             return OK();

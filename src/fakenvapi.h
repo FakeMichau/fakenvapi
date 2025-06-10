@@ -8,13 +8,31 @@
 #endif
 #include <vector>
 
-// #include "lowlatency.h"
 #include "low_latency.h"
 
 #include "util.h"
 #include "log.h"
 
-namespace nvd {
+class LowLatencyCtx {
+public:
+    static void init() {
+        lowlatency_ctx = new LowLatency();
+    }
+
+    static void shutdown() {
+        delete lowlatency_ctx;
+        lowlatency_ctx = nullptr;
+    }
+
+    static LowLatency* get() {
+        return lowlatency_ctx;
+    }
+
+private:
+    static LowLatency* lowlatency_ctx;
+};
+
+namespace fakenvapi {
     static auto drs = 1U;
     static auto drs_session = reinterpret_cast<NvDRSSessionHandle>(&drs);
     static auto drs_profile = reinterpret_cast<NvDRSProfileHandle>(&drs);
@@ -26,8 +44,6 @@ namespace nvd {
     static UINT revision_id = {};
 
     static std::atomic_uint ref_count = 0;
-
-    static LowLatency lowlatency_ctx;
 
     NvAPI_Status __cdecl NvAPI_Initialize();
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc);

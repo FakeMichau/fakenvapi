@@ -24,7 +24,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice) {
         if (!Config::get().get_force_latencyflex()) {
             currently_active_tech = new XeLL();
             if (currently_active_tech->init(pDevice)) {
-                spdlog::debug("LowLatency algo: XeLL");
+                spdlog::info("LowLatency algo: XeLL");
                 return true;
             }
             
@@ -32,7 +32,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice) {
 
             currently_active_tech = new AntiLag2();
             if (currently_active_tech->init(pDevice)) {
-                spdlog::debug("LowLatency algo: AntiLag 2");
+                spdlog::info("LowLatency algo: AntiLag 2");
                 return true;
             }
             
@@ -41,7 +41,7 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice) {
 
         currently_active_tech = new LatencyFlex();
         if (currently_active_tech->init(pDevice)) {
-            spdlog::debug("LowLatency algo: LatencyFlex");
+            spdlog::info("LowLatency algo: LatencyFlex");
             return true;
         }
     }

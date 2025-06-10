@@ -46,7 +46,6 @@ private:
     void add_marker_to_report(NV_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
     void add_marker_to_report(NV_VULKAN_LATENCY_MARKER_PARAMS *pSetLatencyMarkerParams);
     inline std::string marker_to_name(uint32_t marker);
-    void update_config();
 
 public:
     LowLatency() = default;
