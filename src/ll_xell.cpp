@@ -64,11 +64,13 @@ bool XeLL::init(IUnknown *pDevice) {
     if (hr != S_OK)
         return false;
 
-    HookIDXGIAdapter1_GetDesc1();
+    hook_GetDesc1();
 
     spoof(true);
     auto result = o_xellD3D12CreateContext(dx12_pDevice, &ctx);
     spoof(false);
+
+    unhook_GetDesc1();
 
     if (result == XELL_RESULT_SUCCESS && ctx) {
         o_xellSetLoggingCallback(ctx, XELL_LOGGING_LEVEL_DEBUG, [](const char* message, xell_logging_level_t loggingLevel) {
@@ -90,6 +92,7 @@ bool XeLL::init(IUnknown *pDevice) {
         spdlog::info("XeLL initialized");
     } else {
         spdlog::info("XeLL initialization failed: {}", (int32_t) result);
+        deinit();
     }
 
     return result == XELL_RESULT_SUCCESS;
@@ -151,9 +154,9 @@ void XeLL::set_marker(MarkerParams* marker_params) {
         case MarkerType::PRESENT_END:
             add_marker(marker_params->frame_id, XELL_PRESENT_END);
         break;
-        case MarkerType::INPUT_SAMPLE:
-            add_marker(marker_params->frame_id, XELL_INPUT_SAMPLE);
-        break;
+        // case MarkerType::INPUT_SAMPLE:
+        //     add_marker(marker_params->frame_id, XELL_INPUT_SAMPLE);
+        // break;
         default:
         break;
     }
