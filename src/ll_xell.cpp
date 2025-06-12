@@ -133,7 +133,7 @@ void XeLL::set_sleep_mode(SleepMode* sleep_mode) {
     auto result = o_xellSetSleepMode(ctx, &xell_sleep_params);
 }
 
-void XeLL::set_marker(MarkerParams* marker_params) {
+void XeLL::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     switch (marker_params->marker_type) {
         case MarkerType::SIMULATION_START:
             xell_sleep(marker_params->frame_id);

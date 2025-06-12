@@ -2,28 +2,20 @@
 
 #include "low_latency_tech.h"
 
-#include "../external/ffx_antilag2_dx12.h"
-#include "../external/ffx_antilag2_dx11.h"
-
-class AntiLag2 : public virtual LowLatencyTech {
+class AntiLagVk : public virtual LowLatencyTech {
 private:
-    AMD::AntiLag2DX12::Context dx12_ctx = {};
-    AMD::AntiLag2DX11::Context dx11_ctx = {};
-
     uint32_t minimum_interval_us = 0;
 
-    HRESULT al2_sleep();
-
 public:
-    AntiLag2(): LowLatencyTech() {}
+    AntiLagVk(): LowLatencyTech() {}
 
     // From LowLatencyTech
     bool init(IUnknown *pDevice) override;
-    void deinit() override;
+    void deinit() override {}; // Not used by AntiLag VK
 
-    Mode get_mode() override { return Mode::AntiLag2; };
+    Mode get_mode() override { return Mode::AntiLagVk; };
     void* get_tech_context() override;
-    void set_fg_type(bool interpolated, uint64_t frame_id) override;
+    void set_fg_type(bool interpolated, uint64_t frame_id) override {}; // Not used by AntiLag VK
     void set_low_latency_override(ForceReflex low_latency_override) override { this->low_latency_override = low_latency_override; };
     void set_effective_fg_state(bool effective_fg_state) override { this->effective_fg_state = effective_fg_state; };
 

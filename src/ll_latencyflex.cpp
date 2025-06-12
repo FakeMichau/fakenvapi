@@ -117,7 +117,7 @@ void LatencyFlex::sleep() {
         lfx_sleep(INVALID_ID);
 };
 
-void LatencyFlex::set_marker(MarkerParams* marker_params) {
+void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     switch(marker_params->marker_type) {
         case MarkerType::SIMULATION_START:
             if (current_call_spot == CallSpot::SimulationStart)

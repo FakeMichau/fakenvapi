@@ -1,5 +1,6 @@
 #include "low_latency.h"
 #include "ll_antilag2.h"
+#include "ll_antilag_vk.h"
 #include "ll_latencyflex.h"
 #include "ll_xell.h"
 
@@ -65,9 +66,19 @@ bool LowLatency::update_low_latency_tech(IUnknown* pDevice) {
 
 bool LowLatency::update_low_latency_tech(HANDLE vkDevice) {
     if (!currently_active_tech) {
+        if (!Config::get().get_force_latencyflex()) {
+            currently_active_tech = new AntiLagVk();
+            if (currently_active_tech->init(nullptr)) {
+                spdlog::info("LowLatency algo: AntiLag Vulkan");
+                return true;
+            }
+            
+            delete currently_active_tech;
+        }
+
         currently_active_tech = new LatencyFlex();
         if (currently_active_tech->init(nullptr)) {
-            spdlog::debug("LowLatency algo: LatencyFlex");
+            spdlog::info("LowLatency algo: LatencyFlex");
             return true;
         }
     }
@@ -354,7 +365,7 @@ NvAPI_Status LowLatency::SetLatencyMarker(IUnknown* pDev, NV_LATENCY_MARKER_PARA
     marker_params.frame_id = pSetLatencyMarkerParams->frameID;
     marker_params.marker_type = (MarkerType) pSetLatencyMarkerParams->markerType; // requires enums to match
 
-    currently_active_tech->set_marker(&marker_params);
+    currently_active_tech->set_marker(pDev, &marker_params);
 
     spdlog::trace("{}: {}", marker_to_name(pSetLatencyMarkerParams->markerType), pSetLatencyMarkerParams->frameID);
 
@@ -376,7 +387,8 @@ NvAPI_Status LowLatency::SetLatencyMarker(HANDLE vkDevice, NV_VULKAN_LATENCY_MAR
     marker_params.frame_id = pSetLatencyMarkerParams->frameID;
     marker_params.marker_type = (MarkerType) pSetLatencyMarkerParams->markerType; // requires enums to match
 
-    currently_active_tech->set_marker(&marker_params);
+    // This cast is not ideal as it needs to be cast to VkDevice while knowing it's vulkan
+    currently_active_tech->set_marker((IUnknown*)vkDevice, &marker_params);
 
     spdlog::trace("{}: {}", marker_to_name(pSetLatencyMarkerParams->markerType), pSetLatencyMarkerParams->frameID);
 

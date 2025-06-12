@@ -106,7 +106,7 @@ void AntiLag2::sleep() {
     al2_sleep();
 }
 
-void AntiLag2::set_marker(MarkerParams* marker_params) {
+void AntiLag2::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     switch(marker_params->marker_type) {
         case MarkerType::SIMULATION_START:
             if (current_call_spot == CallSpot::SimulationStart)

@@ -11,6 +11,7 @@
 #endif
 #include "../external/nvapi/nvapi.h"
 #include "fakenvapi.h"
+#include "vulkan_hooks.h"
 #include "../version.h"
 
 #include "log.h"
@@ -36,6 +37,12 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
         spdlog::info("Config force_reflex: {}", (int)Config::get().get_force_reflex());
         spdlog::info("Config lfx_mode: {}", (int)Config::get().get_latencyflex_mode());
         spdlog::info("Config save_pcl_to_file: {}", Config::get().get_save_pcl_to_file() ? "true" : "false");
+
+        {
+            // TODO: won't work for late loaded vulkan-1.dll
+            auto vulkan_module = GetModuleHandleA("vulkan-1.dll");
+            VulkanHooks::hook_vulkan(vulkan_module);
+        }
 
         break;
     case DLL_PROCESS_DETACH:

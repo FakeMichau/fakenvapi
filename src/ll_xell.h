@@ -43,6 +43,6 @@ public:
     void get_sleep_status(SleepParams* sleep_params) override;
     void set_sleep_mode(SleepMode* sleep_mode) override;
     void sleep() override {}; // Not used by XeLL due to missing frame ids
-    void set_marker(MarkerParams* marker_params) override;
+    void set_marker(IUnknown* pDevice, MarkerParams* marker_params) override;
     void set_async_marker(MarkerParams* marker_params) override {}; // Not used by XeLL
 };

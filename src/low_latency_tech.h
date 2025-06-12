@@ -14,7 +14,8 @@
 enum class Mode {
     AntiLag2,
     LatencyFlex,
-    XeLL
+    XeLL,
+    AntiLagVk
 };
 
 enum class CallSpot {
@@ -87,6 +88,6 @@ public:
     virtual void get_sleep_status(SleepParams* sleep_params) = 0;
     virtual void set_sleep_mode(SleepMode* sleep_mode) = 0;
     virtual void sleep() = 0;
-    virtual void set_marker(MarkerParams* marker_params) = 0;
+    virtual void set_marker(IUnknown* pDevice, MarkerParams* marker_params) = 0;
     virtual void set_async_marker(MarkerParams* marker_params) = 0;
 };

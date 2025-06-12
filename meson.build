@@ -24,6 +24,13 @@ compiler_args = [
 
 spdlog_headers = include_directories('./external/spdlog/include')
 xell_headers = include_directories('./external/xell/inc')
+detours_headers = include_directories('./external/detours/include')
+vulkan_headers = include_directories('./external/vulkan/include')
+
+lib_detours = declare_dependency(
+    include_directories: detours_headers,
+    link_args: [meson.current_source_dir() / 'external/detours/lib/detours.lib']
+)
 
 windows = import('windows')
 
