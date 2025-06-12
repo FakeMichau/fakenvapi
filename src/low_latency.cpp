@@ -1,8 +1,8 @@
 #include "low_latency.h"
-#include "ll_antilag2.h"
-#include "ll_antilag_vk.h"
-#include "ll_latencyflex.h"
-#include "ll_xell.h"
+#include "low_latency_tech/ll_antilag2.h"
+#include "low_latency_tech/ll_antilag_vk.h"
+#include "low_latency_tech/ll_latencyflex.h"
+#include "low_latency_tech/ll_xell.h"
 
 #include "log.h"
 #include "config.h"

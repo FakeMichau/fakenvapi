@@ -1,6 +1,6 @@
 #pragma once
 
-#include "low_latency_tech.h"
+#include "low_latency_tech/low_latency_tech.h"
 
 #include <dxgi.h>
 #if _MSC_VER
