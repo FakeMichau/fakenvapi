@@ -73,8 +73,6 @@ void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id) {
 }
 
 bool LatencyFlex::init(IUnknown *pDevice) {
-    current_call_spot = CallSpot::SimulationStart;
-
     if (!ctx) {
         ctx = new lfx::LatencyFleX();
         spdlog::info("LatencyFleX initialized");

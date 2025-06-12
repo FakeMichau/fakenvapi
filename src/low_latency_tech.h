@@ -61,14 +61,14 @@ struct MarkerParams {
 
 class LowLatencyTech {
 protected:
-    CallSpot current_call_spot = CallSpot::SleepCall;
+    CallSpot current_call_spot = CallSpot::SimulationStart;
     ForceReflex low_latency_override = ForceReflex::InGame;
     bool low_latency_enabled = false;
     bool effective_fg_state = false;
 
 public:
     LowLatencyTech():
-        current_call_spot(CallSpot::SleepCall), 
+        current_call_spot(CallSpot::SimulationStart), 
         low_latency_override(ForceReflex::InGame), 
         low_latency_enabled(false), 
         effective_fg_state(false) {}

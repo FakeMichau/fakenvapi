@@ -68,8 +68,6 @@ bool AntiLag2::init(IUnknown* pDevice) {
     return false;
 }
 
-// TODO: check OptiFG's reaction to deiniting AL2
-// Might need to not deinit it here, only on shutdown
 void AntiLag2::deinit() {
     if (dx12_ctx.m_pAntiLagAPI && !AMD::AntiLag2DX12::DeInitialize(&dx12_ctx))
         spdlog::info("AntiLag 2 DX12 deinitialized");
@@ -103,7 +101,8 @@ void AntiLag2::set_sleep_mode(SleepMode* sleep_mode) {
 }
 
 void AntiLag2::sleep() {
-    al2_sleep();
+    if (current_call_spot == CallSpot::SleepCall)
+        al2_sleep();
 }
 
 void AntiLag2::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {

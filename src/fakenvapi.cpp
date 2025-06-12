@@ -699,7 +699,7 @@ namespace fakenvapi {
         // *latency = LowLatencyCtx::get()->lfx_stats.latency;
         // *frame_time = LowLatencyCtx::get()->lfx_stats.frame_time;
 
-        return OK();
+        return ERROR();
     }
 
     NvAPI_Status __cdecl Fake_InformFGState(bool fg_state) {
