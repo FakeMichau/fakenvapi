@@ -77,11 +77,3 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
         }
     }
 }
-
-void AntiLagVk::set_async_marker(MarkerParams* marker_params) {
-    if (marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START) {
-        static uint64_t previous_frame_id = marker_params->frame_id;
-        set_fg_type(previous_frame_id == marker_params->frame_id, marker_params->frame_id);
-        previous_frame_id = marker_params->frame_id;
-    }
-}
