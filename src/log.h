@@ -3,7 +3,7 @@
 #include <fstream>
 #include <format>
 #include <windows.h>
-#include "../external/nvapi/nvapi.h"
+#include <nvapi.h>
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "util.h"

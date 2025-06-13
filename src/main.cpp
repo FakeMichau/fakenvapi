@@ -3,13 +3,13 @@
 #include <dxgi.h>
 #include <d3d11.h>
 #include <windows.h>
-#include "../external/nvapi/nvapi_interface.h"
+#include <nvapi_interface.h>
 #if _MSC_VER
 #include <d3d12.h>
 #else
 #include "../external/d3d12.h"
 #endif
-#include "../external/nvapi/nvapi.h"
+#include <nvapi.h>
 #include "fakenvapi.h"
 #include "vulkan_hooks.h"
 #include "../version.h"

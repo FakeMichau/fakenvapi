@@ -2,7 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "../external/nvapi/nvapi.h"
+#include <nvapi.h>
 #include <string>
 #include <map>
 #include <cstdint>

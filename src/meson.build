@@ -21,6 +21,6 @@ shared_library(
     rc,
     name_prefix: '',
     dependencies: [fakenvapi_version_dep, lib_dxgi, lib_detours],
-    include_directories: [spdlog_headers, xell_headers, detours_headers, vulkan_headers],
+    include_directories: [fakenvapi_headers, nvapi_headers, spdlog_headers, xell_headers, detours_headers, vulkan_headers],
     install: true,
 )

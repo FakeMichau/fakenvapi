@@ -4,19 +4,13 @@
 #if _MSC_VER
 #include <d3d12.h>
 #else
-#include "../external/d3d12.h"
+#include "../../external/d3d12.h"
 #endif
 
 #include "log.h"
+#include <fakenvapi_inc.h>
 
 #define INVALID_ID 0xFFFFFFFFFFFFFFFF
-
-enum class Mode {
-    AntiLag2,
-    LatencyFlex,
-    XeLL,
-    AntiLagVk
-};
 
 enum class CallSpot {
     SleepCall = 0,

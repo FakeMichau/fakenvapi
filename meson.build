@@ -26,6 +26,8 @@ spdlog_headers = include_directories('./external/spdlog/include')
 xell_headers = include_directories('./external/xell/inc')
 detours_headers = include_directories('./external/detours/include')
 vulkan_headers = include_directories('./external/vulkan/include')
+nvapi_headers = include_directories('./external/nvapi')
+fakenvapi_headers = include_directories('./include')
 
 lib_detours = declare_dependency(
     include_directories: detours_headers,
