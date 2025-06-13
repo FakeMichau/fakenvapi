@@ -21,7 +21,7 @@ void AntiLagVk::set_sleep_mode(SleepMode* sleep_mode) {
     // use_markers_to_optimize
 
     low_latency_enabled = sleep_mode->low_latency_enabled;
-    minimum_interval_us = sleep_mode->minimum_interval_us; // don't convert to fps due to fg fps limit fallback using intervals
+    max_fps = sleep_mode->minimum_interval_us > 0 ? (uint32_t) std::round(1000000.0f / sleep_mode->minimum_interval_us) : 0;
 }
 
 void AntiLagVk::sleep() {
@@ -31,7 +31,6 @@ void AntiLagVk::sleep() {
 
 void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     auto mode = is_enabled() ? VK_ANTI_LAG_MODE_ON_AMD : VK_ANTI_LAG_MODE_OFF_AMD;
-    auto max_fps = minimum_interval_us > 0 ? (uint32_t) std::round(1000000.0f / minimum_interval_us) : 0;
     
     if (marker_params->marker_type == MarkerType::SIMULATION_START)
     {
@@ -45,7 +44,7 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
         antiLagDataInput.sType = VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
         antiLagDataInput.mode = mode;
         antiLagDataInput.pPresentationInfo = &inputInfo;
-        antiLagDataInput.maxFPS = max_fps; // Or your desired FPS cap
+        antiLagDataInput.maxFPS = max_fps;
 
         if (VulkanHooks::o_vkAntiLagUpdateAMD)
         {
@@ -67,7 +66,7 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
         antiLagDataPresent.sType = VK_STRUCTURE_TYPE_ANTI_LAG_DATA_AMD;
         antiLagDataPresent.mode = mode;
         antiLagDataPresent.pPresentationInfo = &presentInfo;
-        antiLagDataPresent.maxFPS = max_fps; // Or your desired FPS cap
+        antiLagDataPresent.maxFPS = max_fps;
 
         if (VulkanHooks::o_vkAntiLagUpdateAMD)
         {

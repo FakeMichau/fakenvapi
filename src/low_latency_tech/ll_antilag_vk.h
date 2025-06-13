@@ -4,7 +4,7 @@
 
 class AntiLagVk : public virtual LowLatencyTech {
 private:
-    uint32_t minimum_interval_us = 0;
+    uint32_t max_fps = 0;
 
 public:
     AntiLagVk(): LowLatencyTech() {}
