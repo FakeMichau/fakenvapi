@@ -725,7 +725,7 @@ namespace fakenvapi {
 
         LowLatencyCtx::get()->get_low_latency_context(low_latency_context, mode);
 
-        if (*low_latency_context) {
+        if (*low_latency_context || *mode == Mode::AntiLagVk) {
             return OK();
         }
 
