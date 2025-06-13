@@ -688,18 +688,9 @@ namespace fakenvapi {
         return OK();
     }
 
-    // TODO: Remove?
+    // Removed
     NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time) {
-        // if (!call_spot || !target || !latency || !frame_time) return ERROR_VALUE(NVAPI_INVALID_POINTER);
-
-        // if (LowLatencyCtx::get()->get_mode() != Mode::LatencyFlex) return ERROR_VALUE(NVAPI_DATA_NOT_FOUND);
-        // *call_spot = (uint64_t)LowLatencyCtx::get()->call_spot;
-
-        // *target = LowLatencyCtx::get()->lfx_stats.target;
-        // *latency = LowLatencyCtx::get()->lfx_stats.latency;
-        // *frame_time = LowLatencyCtx::get()->lfx_stats.frame_time;
-
-        return ERROR();
+        return ERROR_VALUE(NVAPI_NO_IMPLEMENTATION);
     }
 
     NvAPI_Status __cdecl Fake_InformFGState(bool fg_state) {

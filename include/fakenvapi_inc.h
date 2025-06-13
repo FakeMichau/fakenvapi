@@ -2,8 +2,17 @@
 
 #pragma once
 
-#include <nvapi.h>
 #include <cstdint>
+#include <nvapi.h>
+
+struct FAKENVAPI_INTERFACE_TABLE { const char * func; unsigned int id; };
+inline struct FAKENVAPI_INTERFACE_TABLE fakenvapi_interface_table[] = {
+    { "Fake_GetLatency", 0x21372137 },
+    { "Fake_InformFGState", 0x21382138 },
+    { "Fake_InformPresentFG", 0x21392139 },
+    { "Fake_GetAntiLagCtx", 0x21402140 },
+    { "Fake_GetLowLatencyCtx", 0x21412141 }
+};
 
 enum class Mode {
     AntiLag2,
@@ -11,6 +20,9 @@ enum class Mode {
     XeLL,
     AntiLagVk
 };
+
+// Removed in 1.3.0
+NvAPI_Status __cdecl Fake_GetLatency(uint64_t* call_spot, uint64_t* target, uint64_t* latency, uint64_t* frame_time);
 
 NvAPI_Status __cdecl Fake_InformFGState(bool fg_state);
 

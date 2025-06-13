@@ -63,12 +63,7 @@ NVAPI_INTERFACE_TABLE additional_interface_table[] = {
     { "NvAPI_SK_2", 0x11104158 },
     { "NvAPI_SK_3", 0xe3795199 },
     { "NvAPI_SK_4", 0xdf0dfcdd },
-    { "NvAPI_SK_5", 0x932ac8fb },
-    { "Fake_GetLatency", 0x21372137 },
-    { "Fake_InformFGState", 0x21382138 },
-    { "Fake_InformPresentFG", 0x21392139 },
-    { "Fake_GetAntiLagCtx", 0x21402140 },
-    { "Fake_GetLowLatencyCtx", 0x21412141 }
+    { "NvAPI_SK_5", 0x932ac8fb }
 };
 
 namespace fakenvapi {
@@ -86,11 +81,22 @@ namespace fakenvapi {
             if (entry != registry.end())
                 return entry->second;
 
-            constexpr auto table_size = sizeof(nvapi_interface_table)/sizeof(nvapi_interface_table[0]);
-            struct NVAPI_INTERFACE_TABLE extended_interface_table[table_size + sizeof(additional_interface_table)/sizeof(additional_interface_table[0])] {};
-            memcpy(extended_interface_table, nvapi_interface_table, sizeof(nvapi_interface_table));
-            for (unsigned int i = 0; i < sizeof(additional_interface_table)/sizeof(additional_interface_table[0]); i++) {
-                extended_interface_table[table_size + i] = additional_interface_table[i];
+            constexpr auto original_size = sizeof(nvapi_interface_table)/sizeof(nvapi_interface_table[0]);
+            constexpr auto additional_size = sizeof(additional_interface_table)/sizeof(additional_interface_table[0]);
+            constexpr auto fakenvapi_size = sizeof(fakenvapi_interface_table)/sizeof(fakenvapi_interface_table[0]);
+
+            constexpr auto total_size = original_size + additional_size + fakenvapi_size;
+
+            struct NVAPI_INTERFACE_TABLE extended_interface_table[total_size] {};
+            memcpy(extended_interface_table, nvapi_interface_table, sizeof(nvapi_interface_table)); // copy original table
+
+            for (unsigned int i = 0; i < additional_size; i++) {
+                extended_interface_table[original_size + i] = additional_interface_table[i];
+            }
+
+            for (unsigned int i = 0; i < fakenvapi_size; i++) {
+                extended_interface_table[original_size + additional_size + i].func = fakenvapi_interface_table[i].func;
+                extended_interface_table[original_size + additional_size + i].id = fakenvapi_interface_table[i].id;
             }
 
             auto it = std::find_if(
