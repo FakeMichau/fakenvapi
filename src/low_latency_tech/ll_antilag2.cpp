@@ -62,7 +62,7 @@ bool AntiLag2::init(IUnknown* pDevice) {
             }
         }
     } else {
-        spdlog::warn("Initialization of AntiLag 2 as attempted while the context is not null");
+        spdlog::warn("Initialization of AntiLag 2 was attempted while the context is not null");
     }
 
     return false;

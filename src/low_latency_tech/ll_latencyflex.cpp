@@ -79,6 +79,7 @@ bool LatencyFlex::init(IUnknown *pDevice) {
         return true;
     }
 
+    spdlog::error("LatencyFleX already initialized, this should not happen");
     return false;
 };
 
