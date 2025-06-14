@@ -31,6 +31,22 @@ void AntiLagVk::sleep() {
 
 void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     auto mode = is_enabled() ? VK_ANTI_LAG_MODE_ON_AMD : VK_ANTI_LAG_MODE_OFF_AMD;
+
+    static size_t call_count = 0;
+    static size_t last_oob_present = 0;
+    static bool using_oob_present = false;
+    constexpr size_t allowed_gap = 10;
+
+    call_count++;
+
+    if (marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START) {
+        last_oob_present = call_count;
+        if (!using_oob_present)
+            using_oob_present = true;
+    }
+
+    if (using_oob_present && call_count - last_oob_present > allowed_gap)
+        using_oob_present = false;
     
     if (marker_params->marker_type == MarkerType::SIMULATION_START)
     {
@@ -54,7 +70,8 @@ void AntiLagVk::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
         }
     }
 
-    if (marker_params->marker_type == MarkerType::PRESENT_START)
+    if ((marker_params->marker_type == MarkerType::PRESENT_START && !using_oob_present) ||
+        marker_params->marker_type == MarkerType::OUT_OF_BAND_PRESENT_START)
     {
         // Before calling vkQueuePresentKHR
         VkAntiLagPresentationInfoAMD presentInfo = {};
