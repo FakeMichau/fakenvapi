@@ -27,7 +27,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
             if (Config::get().get_enable_trace_logs())
                 prepare_logging(spdlog::level::trace);
             else
-                prepare_logging(spdlog::level::debug); // TODO: change back to info
+                prepare_logging(spdlog::level::info);
         else
             prepare_logging(spdlog::level::off);
 
