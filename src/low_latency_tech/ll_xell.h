@@ -32,7 +32,7 @@ public:
     bool init(IUnknown *pDevice) override;
     void deinit() override;
 
-    Mode get_mode() override { return Mode::LatencyFlex; };
+    Mode get_mode() override { return Mode::XeLL; };
     void* get_tech_context() override;
     void set_fg_type(bool interpolated, uint64_t frame_id) override {}; // Not used by XeLL
     void set_low_latency_override(ForceReflex low_latency_override) override { this->low_latency_override = low_latency_override; };
