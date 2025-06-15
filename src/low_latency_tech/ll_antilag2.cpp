@@ -30,6 +30,8 @@ inline HRESULT AntiLag2::al2_sleep() {
 
     // log_event("al2_sleep", "{}", get_timestamp() - pre_sleep);
 
+    spdlog::trace("AntiLag 2 Call Spot: {}", current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
+
     return result;
 }
 
@@ -101,6 +103,8 @@ void AntiLag2::set_sleep_mode(SleepMode* sleep_mode) {
 }
 
 void AntiLag2::sleep() {
+    last_sleep_framecount = simulation_framecount;
+
     if (current_call_spot == CallSpot::SleepCall)
         al2_sleep();
 }
@@ -108,6 +112,13 @@ void AntiLag2::sleep() {
 void AntiLag2::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     switch(marker_params->marker_type) {
         case MarkerType::SIMULATION_START:
+            simulation_framecount++;
+
+            if (last_sleep_framecount + call_spot_switch_threshold < simulation_framecount)
+                current_call_spot = CallSpot::SimulationStart;
+            else
+                current_call_spot = CallSpot::SleepCall;
+
             if (current_call_spot == CallSpot::SimulationStart)
                 al2_sleep();
         break;

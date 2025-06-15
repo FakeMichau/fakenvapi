@@ -11,6 +11,10 @@ private:
     AMD::AntiLag2DX11::Context dx11_ctx = {};
 
     uint32_t minimum_interval_us = 0;
+    
+    uint64_t last_sleep_framecount = 0;
+    uint64_t simulation_framecount = 0;
+    const uint64_t call_spot_switch_threshold = 20;
 
     HRESULT al2_sleep();
 

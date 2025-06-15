@@ -19,7 +19,9 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
         eepy(200000000ULL);
         frame_id = 1;
         needs_reset = false;
-        ctx->Reset();
+
+        if (ctx)
+            ctx->Reset();
     }
 
     uint64_t current_timestamp = get_timestamp();
@@ -33,7 +35,8 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
     mutex.lock();
     auto local_frame_id = lfx_mode == LFXMode::ReflexIDs ? reflex_frame_id : this->frame_id + 1;
     // log_event("lfx_get_wait_target", "{}", frame_id);
-    target = ctx->GetWaitTarget(local_frame_id);
+    if (ctx)
+        target = ctx->GetWaitTarget(local_frame_id);
     mutex.unlock();
 
     if (target > current_timestamp) {
@@ -55,10 +58,13 @@ void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id) {
         timestamp = current_timestamp;
     }
 
+    spdlog::trace("LatencyFlex Call Spot: {}", current_call_spot == CallSpot::SimulationStart ? "SimulationStart" : "SleepCall");
+
     mutex.lock();
     this->frame_id++;
     // log_event("lfx_beginframe", "{}", frame_id);
-    ctx->BeginFrame(local_frame_id, target, timestamp);
+    if (ctx)
+        ctx->BeginFrame(local_frame_id, target, timestamp);
     mutex.unlock();
 }
 
@@ -67,7 +73,8 @@ void LatencyFlex::lfx_end_frame(uint64_t reflex_frame_id) {
     mutex.lock();
     auto frame_id = Config::get().get_latencyflex_mode() == LFXMode::ReflexIDs ? reflex_frame_id : this->frame_id;
     // log_event("lfx_endframe", "{}", frame_id);
-    ctx->EndFrame(frame_id, current_timestamp, &latency, &frame_time);
+    if (ctx)
+        ctx->EndFrame(frame_id, current_timestamp, &latency, &frame_time);
     mutex.unlock();
     spdlog::trace("LFX latency: {}, frame_time: {}, current_timestamp: {}", latency, frame_time, current_timestamp);
 }
@@ -112,13 +119,24 @@ void LatencyFlex::set_sleep_mode(SleepMode* sleep_mode) {
 };
 
 void LatencyFlex::sleep() {
-    if (current_call_spot == CallSpot::SleepCall && Config::get().get_latencyflex_mode() != LFXMode::ReflexIDs)
-        lfx_sleep(INVALID_ID);
+    if (Config::get().get_latencyflex_mode() != LFXMode::ReflexIDs) {
+        last_sleep_framecount = simulation_framecount;
+        
+        if (current_call_spot == CallSpot::SleepCall)
+            lfx_sleep(INVALID_ID);
+    }
 };
 
 void LatencyFlex::set_marker(IUnknown* pDevice, MarkerParams* marker_params) {
     switch(marker_params->marker_type) {
         case MarkerType::SIMULATION_START:
+            simulation_framecount++;
+            
+            if (last_sleep_framecount + call_spot_switch_threshold < simulation_framecount)
+                current_call_spot = CallSpot::SimulationStart;
+            else
+                current_call_spot = CallSpot::SleepCall;
+                
             if (current_call_spot == CallSpot::SimulationStart)
                 lfx_sleep(marker_params->frame_id);
         break;
