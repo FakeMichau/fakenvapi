@@ -43,7 +43,7 @@ namespace fakenvapi {
     static UINT subsystem_id = {};
     static UINT revision_id = {};
 
-    static std::atomic_uint ref_count = 0;
+    static uint64_t ref_count = 0;
 
     NvAPI_Status __cdecl NvAPI_Initialize();
     NvAPI_Status __cdecl NvAPI_GetInterfaceVersionString(NvAPI_ShortString desc);

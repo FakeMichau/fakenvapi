@@ -1,6 +1,7 @@
 #include "fakenvapi.h"
 
 LowLatency* LowLatencyCtx::lowlatency_ctx = nullptr;
+static auto init_mutex = std::mutex{};
 
 namespace fakenvapi {
     bool Init() {
@@ -40,10 +41,14 @@ namespace fakenvapi {
     }
 
     NvAPI_Status __cdecl NvAPI_Initialize() {
+        std::scoped_lock lock(init_mutex);
+
         ref_count++;
         
-        if (!Init())
+        if (!Init()) {
+            --ref_count;
             return ERROR();
+        }
 
         return OK();
     }
@@ -679,10 +684,12 @@ namespace fakenvapi {
     }
 
     NvAPI_Status __cdecl NvAPI_Unload() {
-        if(ref_count.load() > 0)
-            ref_count--;
+        std::scoped_lock lock(init_mutex);
         
-        if(ref_count.load() == 0)
+        if (ref_count == 0)
+            return ERROR_VALUE(NVAPI_API_NOT_INITIALIZED);
+
+        if(--ref_count == 0)
             LowLatencyCtx::get()->deinit_current_tech();
 
         return OK();
