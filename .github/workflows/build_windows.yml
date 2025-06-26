@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,15 +26,6 @@ jobs:
           Write-Output "VSDEVCMD=${installationPath}\Common7\Tools\VsDevCmd.bat" `
             | Out-File -FilePath "${Env:GITHUB_ENV}" -Append
             
-      - name: Build MSVC x86
-        shell: pwsh
-        run: |
-          & "${Env:COMSPEC}" /s /c "`"${Env:VSDEVCMD}`" -arch=x86 -host_arch=x64 -no_logo && set" `
-            | % { , ($_ -Split '=', 2) } `
-            | % { [System.Environment]::SetEnvironmentVariable($_[0], $_[1]) }
-          meson setup --buildtype release --backend vs2022 --default-library both --wipe build-msvc-x86
-          meson compile -C build-msvc-x86
-
       - name: Build MSVC x64
         shell: pwsh
         run: |
@@ -47,8 +38,6 @@ jobs:
       - name: Prepare files
         shell: pwsh
         run: |
-          mkdir x86
-          cp build-msvc-x86/src/nvapi.dll x86
           mkdir x64
           cp build-msvc-x64/src/nvapi64.dll x64
 
@@ -57,5 +46,4 @@ jobs:
         with:
           name: fakenvapi-${{ github.ref_name }}
           path: | 
-            x86/
             x64/
