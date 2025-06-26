@@ -40,8 +40,15 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 
         {
             // TODO: won't work for late loaded vulkan-1.dll
-            auto vulkan_module = GetModuleHandleA("vulkan-1.dll");
-            VulkanHooks::hook_vulkan(vulkan_module);
+            auto vulkan_module = GetModuleHandleA("winevulkan.dll");
+            
+            if (!vulkan_module)
+                vulkan_module = GetModuleHandleA("vulkan-1.dll");
+
+            if (vulkan_module)
+                VulkanHooks::hook_vulkan(vulkan_module);
+            else
+                spdlog::info("No vulkan module");
         }
 
         break;
