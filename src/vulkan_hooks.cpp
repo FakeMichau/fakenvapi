@@ -44,6 +44,7 @@ VkResult VulkanHooks::hkvkCreateDevice(VkPhysicalDevice physicalDevice, VkDevice
     // Can ask for a function from an extension after the device creation
     if (antiLagSupported && o_vkGetDeviceProcAddr) {
         o_vkAntiLagUpdateAMD = (PFN_vkAntiLagUpdateAMD) o_vkGetDeviceProcAddr(*pDevice, "vkAntiLagUpdateAMD");
+        spdlog::debug("o_vkAntiLagUpdateAMD = {}", reinterpret_cast<void*>(o_vkAntiLagUpdateAMD));
     } else {
         spdlog::info("Vulkan AntiLag can't be enabled");
     }
