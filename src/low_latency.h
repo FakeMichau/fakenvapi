@@ -59,7 +59,10 @@ public:
 
     bool deinit_current_tech();
     void set_forced_fg(std::optional<bool> forced_fg) { this->forced_fg = forced_fg; };
-    void set_fg_type(bool interpolated, uint64_t frame_id) { currently_active_tech->set_fg_type(interpolated, frame_id); }
+    void set_fg_type(bool interpolated, uint64_t frame_id) {
+        if (currently_active_tech)
+            currently_active_tech->set_fg_type(interpolated, frame_id); 
+    }
     void get_low_latency_context(void** low_latency_context, Mode* low_latency_tech);
 
     // D3D
